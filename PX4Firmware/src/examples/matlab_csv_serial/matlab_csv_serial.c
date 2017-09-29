@@ -156,6 +156,7 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	int termios_state;
 
 	/* Back up the original uart configuration to restore it after exit */
+	//tcgetattr，用于设置终端的函数
 	if ((termios_state = tcgetattr(serial_fd, &uart_config)) < 0) {
 		warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
 		close(serial_fd);
@@ -189,7 +190,7 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	struct gyro_report gyro0;
 	struct gyro_report gyro1;
 
-	/* subscribe to parameter changes */
+	/* subscribe to parameter changes ,认为0，1就是实例序号，默认情况下是0*/
 	int accel0_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
 	int accel1_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 1);
 	int gyro0_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 0);

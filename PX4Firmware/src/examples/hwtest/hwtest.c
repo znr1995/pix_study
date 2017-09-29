@@ -65,6 +65,7 @@ int ex_hwtest_main(int argc, char *argv[])
 
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
+	/*先发布actuator_contrils_0*/
 	orb_advert_t actuator_pub_ptr = orb_advertise(ORB_ID(actuator_controls_0), &actuators);
 
 	struct actuator_armed_s arm;
@@ -73,7 +74,9 @@ int ex_hwtest_main(int argc, char *argv[])
 	arm.timestamp = hrt_absolute_time();
 	arm.ready_to_arm = true;
 	arm.armed = true;
+	//再发布 actuator_armd
 	orb_advert_t arm_pub_ptr = orb_advertise(ORB_ID(actuator_armed), &arm);
+	//发布数据
 	orb_publish(ORB_ID(actuator_armed), arm_pub_ptr, &arm);
 
 	/* read back values to validate */
@@ -94,7 +97,7 @@ int ex_hwtest_main(int argc, char *argv[])
 	while (count != 36) {
 		stime = hrt_absolute_time();
 
-		while (hrt_absolute_time() - stime < 1000000) {
+		while (hrt_absolute_time() - stime < 1000000) {  //在之后的一秒内，count不自增
 			for (int i = 0; i != 2; i++) {
 				if (count <= 5) {
 					actuators.control[i] = -1.0f;
@@ -120,6 +123,7 @@ int ex_hwtest_main(int argc, char *argv[])
 			}
 
 			actuators.timestamp = hrt_absolute_time();
+			//通过时间戳不停的发布数据
 			orb_publish(ORB_ID(actuator_controls_0), actuator_pub_ptr, &actuators);
 			usleep(10000);
 		}
