@@ -106,3 +106,18 @@ data:指向发布数据的制作
 
 
 
+### 参数获取
+
+```c
+uintptr_t param_find(const char *name)
+  对已知参数进行线性搜索
+eg:param_t _param_system_id = param_find("MAV_SYS_ID");
+PARAM_DEFINE_INT32(MAV_SYS_ID,1)
+ int param_get(param_t param, void *val)
+  获取param的地址并赋给val，调用param_get_value_ptr(param)
+```
+
+
+
+
+
