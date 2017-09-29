@@ -51,7 +51,8 @@ Ardupilot是APM的固件
 
 ​	每个进程可以订阅/发布topic,一个进程可以订阅多个主题，但一条总线始终只能有一条消息。
 
-	#### 公告topic
+#### 公告topic
+
 
 ​	`extern int orb_advertise(const struct orb_metadata *meta,const void *data)`
 
@@ -117,7 +118,21 @@ PARAM_DEFINE_INT32(MAV_SYS_ID,1)
   获取param的地址并赋给val，调用param_get_value_ptr(param)
 ```
 
+### examples
 
+#### fixedwing_control
+
+
+
+#### px4_daemon_app
+
+px4_daemon_app_main:控制的主线程
+
+px4_daemon_thread_main:运行线程
+
+构造线程=>**px4_task_spawn_cmd**构建
+
+usage负责输出
 
 
 

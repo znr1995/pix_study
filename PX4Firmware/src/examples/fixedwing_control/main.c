@@ -113,6 +113,8 @@ static void usage(const char *reason);
  * @param att_sp The current attitude setpoint - the values the system would like to reach.
  * @param att The current attitude. The controller should make the attitude match the setpoint
  * @param rates_sp The angular rate setpoint. This is the output of the controller.
+ * 
+ * 控制姿态的，俯仰和左右滚
  */
 void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
 		      struct vehicle_rates_setpoint_s *rates_sp,
@@ -129,6 +131,8 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
  * @param sp The current position setpoint
  * @param att The current attitude
  * @param att_sp The attitude setpoint. This is the output of the controller
+ * 
+ * 控制航向，当前位置，目标位置
  */
 void control_heading(const struct vehicle_global_position_s *pos, const struct position_setpoint_s *sp,
 		     const struct vehicle_attitude_s *att, struct vehicle_attitude_setpoint_s *att_sp);
@@ -261,7 +265,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	memset(&vstatus, 0, sizeof(vstatus));
 	struct position_setpoint_s global_sp;
 	memset(&global_sp, 0, sizeof(global_sp));
-
+	/*att, att_sp, rates_sp, global_pos, manual_sp, vstatus, global_sp*/
 	/* output structs - this is what is sent to the mixer */
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
