@@ -51,7 +51,8 @@ Ardupilot是APM的固件
 
 ​	每个进程可以订阅/发布topic,一个进程可以订阅多个主题，但一条总线始终只能有一条消息。
 
-	#### 公告topic
+#### 公告topic
+
 
 ​	`extern int orb_advertise(const struct orb_metadata *meta,const void *data)`
 
@@ -94,17 +95,11 @@ data:指向发布数据的制作
 
 `extern int orb_stat(int handle,uint64_t *time)`
 
-
-
-### Note:
+####Note:
 
 1. 必须要先orb_advertise()+orb_subscribe()后，才能使用orb_copy()	
 2. 所有主题在Firmware/Build_px4fmu-v2_default/Src_Modules/uORB/Topics
 3. 也可以到Firmware/Msg下找到
-
-## Daemon
-
-
 
 ### 参数获取
 
@@ -117,7 +112,75 @@ PARAM_DEFINE_INT32(MAV_SYS_ID,1)
   获取param的地址并赋给val，调用param_get_value_ptr(param)
 ```
 
+###land_detector
 
+#### class LandDetector  
+
+​	为降落检测算法提供统一接口
+
+- isRunning() bool public
+- isLanded() bool
+- shutdown() void
+- start()  void
+- cycle_trampoline() static void
+- update() virtual bool  protected
+- initialize() virtual void
+  - orb_update(xxx) bool  =>为了方便统计uORB订阅信息
+- cycle() void private
+
+````c++
+* 类的实现逻辑：
+ * 调用LandDetector::start()方法 =>将LandDetector::cycle_trampoline()加入全局工作队列中，参数时当前对象的指针
+ * cycle_trampoline()将参数转化为LandDetecotr的基类指针，然后调用LandDetector::cycle()
+ * 在cycle()中，如果没有初始化，初始化！然后更新状态updata()，通过uORB输出状态，如果没有退出标识，将cycle_trampoline()再次加入工作队列，等待下次调用
+````
+
+
+
+#### class FixedwingLandDetector
+
+- update() bool override protected
+- initialize() void override  -> 订阅信息
+- updateSubscriptions() void -> 更新信息 
+- updateParamterCache(const bool) void ->更新cache中的参数
+
+````c
+类的描述：
+	类订阅了control_state,vehicle_status,actuator_armed,airspeed信息。
+	实现了updata()方法：
+		更新_velocity_xy_filtered,_velocity_z_filtered,_airspeed_filtered,_accel_horz_lp四个参数，根据当前实际状态值，以不同比例，更新这几个参数
+	
+````
+
+### local_position_estimator
+
+
+
+
+
+### fw_att_control
+
+#### class FixedwingAttitudeControl
+
+- start() int **public** -> 控制程序开始入口
+- task_runing() bool 
+- paramters_update() int **private** -> 更新\_parameters的所有参数，并且更新\_roll_ctrl,\_yaw_ctrl,\_pitch_ctrl,\_wheel_ctrl参数
+- control_update() void  -> 更新控制输出
+- vehicle_control_mode_poll() void -> 检测控制模式是否改变，并从uORBcopy下来，存在private变量中，其他一样
+- vehicle_manual_poll() void ->  检测输入是否改变
+- vehicle_accel_poll() void  -> 检测加速度是否改变
+- vehicle_setpoint_poll() void -> 检测设定点是否改变
+- global_pos_poll() void  -> 检测位置是否改变
+- vehicle_status_poll() void -> 检测状态是否改变
+- task_main_trampoline(int argc,char* argv[]) void static
+- task_main() void -> 姿态调整的主线程
+
+类的主题实现流程：
+
+1. fw_att_control_main的入口，实现start|stop|status功能，给namespace::g_control指针赋值。
+2. 调用g_control->start()开始类中的函数
+3. 调用px4_task_spawn_cmd来运行task_main_trampoline,通过这个函数调用task_main()开始姿态调整
+4. ​
 
 
 
