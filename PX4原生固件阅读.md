@@ -181,20 +181,55 @@ PARAM_DEFINE_INT32(MAV_SYS_ID,1)
 2. 调用g_control->start()开始类中的函数
 3. 调用px4_task_spawn_cmd来运行task_main_trampoline,通过这个函数调用task_main()开始姿态调整
 4. 更新所有状态，然后监控\_params_sub,_\_ctrl_state_sub，最慢500ms更新一次
-5. 1. perf_begin(_loop_perf)
+5. 1. perf_begin(_loop_perf)，为止，应该是有关调度和资源分配的吧
+
    2. 判断\_params是否需要更新
+
    3. 当姿态发生变化，run controller
+
    4. 1. 判断当前调整与上一次调整的时间间隔，如果大与1.0f，置为0.01f
+
       2. 保存控制信息到\_ctrl_state
+
       3. 从\_ctrl_state中获取旋转矩阵和欧拉角度。
+
       4. 更新所有状态
+
       5. 判断是否开始控制，否则锁定积分器
+
       6. 判断故障否
+
       7. 先获取输入襟翼舵量flaps_control(有手动自动之分)
+
       8. 根据与上一次输入舵量的比较，判断是否更新输入，然后记录更改的时间t_flaps_changed，变化舵量delta_flaps,
+
       9. 最后对输出flaps_applied做平滑处理，防止在短时间内，变化过大，*flaps_applied = flaps_control (输入量) - (1 - delta_T(时间变化量)) * delta_flaps*, 流程代码见附加1
+
       10. 副翼控制流程同上
-      11. ​
+
+      11. 根据_vcontrol_mode模式区别处理
+
+          - 自动模式下，先限制空速最小0.5,计算airspeed_scaling,groundspeed（地速），roll_sp,pitch_sp等
+
+          1. \_flag_control_auto_enabled，俯仰滚转姿态设定=_att_sp的参数+默认的偏移量，油门航向直接是设定的值。根据参数是否重置积分器
+
+          2. flag_control_velocity_enabled,定速巡航模式，同上，roll改变前只是会做点小判断
+
+          3. flag_control_altitude_enabled，定高模式，roll设定混入一定手动参数
+
+          4. 其他模式，半手动模式，roll=手动输入\*man_roll_max+rollsp_offset_rad,pitch=手动输入\*man_roll_max+pitch_offset_rad
+
+          5. 如果已经落地，重置积分器
+
+             将得到的参数输入control_input中，给\roll_ctrl,\_pitch_ctrl,\_yaw_ctrl,\_wheel_ctrl,在通过函数get_desired_rate()计算得到期望速率，然后输出给actuators对应通道
+
+          - 手动模式下，将手动输入值+\+parameter.trim_xx直接输出到_actuatuors中，作为最后的控制信号
+
+      12. 通过uORB输出对应的信息
+
+   5. loop_counter++;perf_end(\_loop_perf);
+
+   ​
 
 
 #####附录1

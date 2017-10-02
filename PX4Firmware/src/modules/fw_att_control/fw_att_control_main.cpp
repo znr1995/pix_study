@@ -840,7 +840,7 @@ FixedwingAttitudeControl::task_main()
 				continue;
 			}
 
-			/* default flaps（振翅，应该是副翼舵量） to center */
+			/* default flaps（振翅，襟翼舵量） to center */
 			float flaps_control = 0.0f;  //flaps_control 可以看作当前的输入舵量
 
 			static float delta_flaps = 0;   // 舵量的变化值
@@ -910,7 +910,7 @@ FixedwingAttitudeControl::task_main()
 				if (bool nonfinite = !PX4_ISFINITE(_ctrl_state.airspeed) || !_ctrl_state.airspeed_valid) {
 					airspeed = _parameters.airspeed_trim;
 
-					if (nonfinite) {
+					if (nonfinite) { //输入不合法 计数器
 						perf_count(_nonfinite_input_perf);
 					}
 
@@ -924,13 +924,19 @@ FixedwingAttitudeControl::task_main()
 				 * speed doesn't make any sense - its the strongest reasonable deflection we
 				 * want to do in flight and its the baseline a human pilot would choose.
 				 *
+				 * 扩展任何小于最小速度（失速速度）的动作都是无意义的,这是我们在飞行中最重要的限度，也是人类飞行员的底线
+				 * 
 				 * Forcing the scaling to this value allows reasonable handheld tests.
+				 * 需要扩展这个值使其可以进行手拿测试
+				 * 
 				 */
 				float airspeed_scaling = _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min :
 							 airspeed);
 
 				/* Use min airspeed to calculate ground speed scaling region.
-				 * Don't scale below gspd_scaling_trim
+				 * 使用最小的空速来计算缩放空域的地面速度
+				 * Don't scale below gspd_scaling_trim 
+				 * 不能缩放gspd_scaling_trim
 				 */
 				float groundspeed = sqrtf(_global_pos.vel_n * _global_pos.vel_n +
 							  _global_pos.vel_e * _global_pos.vel_e);
@@ -945,18 +951,22 @@ FixedwingAttitudeControl::task_main()
 
 				/* Read attitude setpoint from uorb if
 				 * - velocity control or position control is enabled (pos controller is running)
+				 * - 飞行器控制/位置控制开启，（pos controller 开启）
 				 * - manual control is disabled (another app may send the setpoint, but it should
 				 *   for sure not be set from the remote control values)
+				 * - 手动控制不开启（确保不会被远程控控制设置，因为另外一个app可能在发送设定点）
 				 */
 				if (_vcontrol_mode.flag_control_auto_enabled ||
 				    !_vcontrol_mode.flag_control_manual_enabled) {
 					/* read in attitude setpoint from attitude setpoint uorb topic */
+					/* roll 滚转 pitch 俯仰 yaw 航线*/
 					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
 					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
 					yaw_sp = _att_sp.yaw_body;
 					throttle_sp = _att_sp.thrust;
 
 					/* reset integrals where needed */
+					/* 如果需要，重置积分器 */
 					if (_att_sp.roll_reset_integral) {
 						_roll_ctrl.reset_integrator();
 					}
@@ -970,7 +980,7 @@ FixedwingAttitudeControl::task_main()
 						_wheel_ctrl.reset_integrator();
 					}
 
-				} else if (_vcontrol_mode.flag_control_velocity_enabled) {
+				} else if (_vcontrol_mode.flag_control_velocity_enabled) { //是匀速模式
 
 					/* the pilot does not want to change direction,
 					 * take straight attitude setpoint from position controller
@@ -1000,7 +1010,7 @@ FixedwingAttitudeControl::task_main()
 						_wheel_ctrl.reset_integrator();
 					}
 
-				} else if (_vcontrol_mode.flag_control_altitude_enabled) {
+				} else if (_vcontrol_mode.flag_control_altitude_enabled) {  //定高模式，手动模式
 					/*
 					 * Velocity should be controlled and manual is enabled.
 					*/
@@ -1034,6 +1044,8 @@ FixedwingAttitudeControl::task_main()
 					 * The trim gets subtracted here from the manual setpoint to get
 					 * the intended attitude setpoint. Later, after the rate control step the
 					 * trim is added again to the control signal.
+					 * 
+					 * 修剪，当前值减去手动设定的值，是为了获取预期的姿态设定点。之后，速率控制步骤后的修剪为了再次添加控制信号。
 					 */
 					roll_sp = (_manual.y * _parameters.man_roll_max) + _parameters.rollsp_offset_rad;
 					pitch_sp = -(_manual.x * _parameters.man_pitch_max) + _parameters.pitchsp_offset_rad;
@@ -1045,6 +1057,7 @@ FixedwingAttitudeControl::task_main()
 					 * in manual mode no external source should / does emit attitude setpoints.
 					 * emit the manual setpoint here to allow attitude controller tuning
 					 * in attitude control mode.
+					 * 在手动模式下没有外部源应该发出的态度设定值。发出在这里手动设定允许调整姿态控制模式下的姿态控制器。
 					 */
 					struct vehicle_attitude_setpoint_s att_sp;
 					att_sp.timestamp = hrt_absolute_time();
@@ -1054,6 +1067,7 @@ FixedwingAttitudeControl::task_main()
 					att_sp.thrust = throttle_sp;
 
 					/* lazily publish the setpoint only once available */
+					/* 一次性的发布 */
 					if (_attitude_sp_pub != nullptr) {
 						/* publish the attitude setpoint */
 						orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &att_sp);
@@ -1065,6 +1079,7 @@ FixedwingAttitudeControl::task_main()
 				}
 
 				/* If the aircraft is on ground reset the integrators */
+				/* 已经落地了，重置积分器 */
 				if (_vehicle_status.condition_landed || _vehicle_status.is_rotary_wing) {
 					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();
@@ -1078,6 +1093,7 @@ FixedwingAttitudeControl::task_main()
 				float speed_body_w = _R(0, 2) * _global_pos.vel_n + _R(1, 2) * _global_pos.vel_e + _R(2, 2) * _global_pos.vel_d;
 
 				/* Prepare data for attitude controllers */
+				/* 准备为控制输入对应参数 */
 				struct ECL_ControlData control_input = {};
 				control_input.roll = _roll;
 				control_input.pitch = _pitch;
@@ -1105,6 +1121,7 @@ FixedwingAttitudeControl::task_main()
 				_yaw_ctrl.set_coordinated_method(_parameters.y_coordinated_method);
 
 				/* Run attitude controllers */
+				/* 前面都是计算参数，这里开始实际根据参数运行 */
 				if (PX4_ISFINITE(roll_sp) && PX4_ISFINITE(pitch_sp)) {
 					_roll_ctrl.control_attitude(control_input);
 					_pitch_ctrl.control_attitude(control_input);
@@ -1112,11 +1129,13 @@ FixedwingAttitudeControl::task_main()
 					_wheel_ctrl.control_attitude(control_input);
 
 					/* Update input data for rate controllers */
+					/* 获取期望速率 */
 					control_input.roll_rate_setpoint = _roll_ctrl.get_desired_rate();
 					control_input.pitch_rate_setpoint = _pitch_ctrl.get_desired_rate();
 					control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
+					/* 为上面需要描述期望姿态而运行姿态速率控制器 */
 					float roll_u = _roll_ctrl.control_bodyrate(control_input);
 					_actuators.control[0] = (PX4_ISFINITE(roll_u)) ? roll_u + _parameters.trim_roll : _parameters.trim_roll;
 
@@ -1179,6 +1198,7 @@ FixedwingAttitudeControl::task_main()
 
 					/* throttle passed through if it is finite and if no engine failure was
 					 * detected */
+					/* throttle 油门 */
 					_actuators.control[3] = (PX4_ISFINITE(throttle_sp) &&
 								 !(_vehicle_status.engine_failure ||
 								   _vehicle_status.engine_failure_cmd)) ?
@@ -1201,6 +1221,8 @@ FixedwingAttitudeControl::task_main()
 				/*
 				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
 				 * only once available
+				 * 
+				 * 输出对应信息
 				 */
 				_rates_sp.roll = _roll_ctrl.get_desired_rate();
 				_rates_sp.pitch = _pitch_ctrl.get_desired_rate();
@@ -1238,6 +1260,7 @@ FixedwingAttitudeControl::task_main()
 			_actuators_airframe.timestamp_sample = _ctrl_state.timestamp;
 
 			/* Only publish if any of the proper modes are enabled */
+			/* 在以下模式的时候输出对应信息 */
 			if (_vcontrol_mode.flag_control_rates_enabled ||
 			    _vcontrol_mode.flag_control_attitude_enabled ||
 			    _vcontrol_mode.flag_control_manual_enabled) {
