@@ -729,6 +729,7 @@ FixedwingAttitudeControl::task_main()
 			last_run = hrt_absolute_time();
 
 			/* guard against too large deltaT's */
+			/* 预防delta T 太大*/
 			if (deltaT > 1.0f) {
 				deltaT = 0.01f;
 			}
@@ -738,6 +739,7 @@ FixedwingAttitudeControl::task_main()
 
 
 			/* get current rotation matrix and euler angles from control state quaternions */
+			/* 从四元组中获取当前旋转矩阵和欧拉角度 */
 			math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
 			_R = q_att.to_dcm();
 
@@ -811,6 +813,7 @@ FixedwingAttitudeControl::task_main()
 			_att_sp.fw_control_yaw = _att_sp.fw_control_yaw && _vcontrol_mode.flag_control_auto_enabled;
 
 			/* lock integrator until control is started */
+			/* 在控制开始前锁定积分器 */
 			bool lock_integrator;
 
 			if (_vcontrol_mode.flag_control_attitude_enabled && !_vehicle_status.is_rotary_wing) {
@@ -821,8 +824,10 @@ FixedwingAttitudeControl::task_main()
 			}
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
+			/* 简单的故障处理：如果故障指示开启，打开降落伞 */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
-				_actuators_airframe.control[7] = 1.0f;
+				//机身驱动器的控制输入
+				_actuators_airframe.control[7] = 1.0f; 
 				//warnx("_actuators_airframe.control[1] = 1.0f;");
 
 			} else {
@@ -830,17 +835,18 @@ FixedwingAttitudeControl::task_main()
 				//warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 
-			/* if we are in rotary wing mode, do nothing */
+			/* if we are in rotary（旋转） wing mode, do nothing */
 			if (_vehicle_status.is_rotary_wing && !_vehicle_status.is_vtol) {
 				continue;
 			}
 
-			/* default flaps to center */
-			float flaps_control = 0.0f;
+			/* default flaps（振翅，应该是副翼舵量） to center */
+			float flaps_control = 0.0f;  //flaps_control 可以看作当前的输入舵量
 
-			static float delta_flaps = 0;
+			static float delta_flaps = 0;   // 舵量的变化值
 
 			/* map flaps by default to manual if valid */
+			/* 从手动输入通道获取输入值，判读是否合法 */
 			if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled) {
 				flaps_control = 0.5f * (_manual.flaps + 1.0f) * _parameters.flaps_scale;
 
@@ -849,17 +855,19 @@ FixedwingAttitudeControl::task_main()
 			}
 
 			// move the actual control value continuous with time
-			static hrt_abstime t_flaps_changed = 0;
+			static hrt_abstime t_flaps_changed = 0;   //上一次更新舵量的绝对时间
 
-			if (fabsf(flaps_control - _flaps_cmd_last) > 0.01f) {
+			if (fabsf(flaps_control - _flaps_cmd_last) > 0.01f) {   //flaps_cmd_last 是上一次修改舵量的值
 				t_flaps_changed = hrt_absolute_time();
-				delta_flaps = flaps_control - _flaps_cmd_last;
+				delta_flaps = flaps_control - _flaps_cmd_last;		//记录当前输入和上一次输入的差值
 				_flaps_cmd_last = flaps_control;
 			}
 
-			static float flaps_applied = 0.0f;
+			static float flaps_applied = 0.0f;		//最终输出舵量
 
 			if (fabsf(flaps_applied - flaps_control) > 0.01f) {
+				//为了平滑处理，防止输出量出现阶跃的现象
+				// flaps_applied = flaps_control (输入量) - (1 - delta_T(时间变化量)) * delta_flaps;
 				flaps_applied = (flaps_control - delta_flaps) + (float)hrt_elapsed_time(&t_flaps_changed) * (delta_flaps) / 1000000;
 			}
 
@@ -893,6 +901,7 @@ FixedwingAttitudeControl::task_main()
 			}
 
 			/* decide if in stabilized or full manual control */
+			/* 判断是自动模式 还是 手动模式 */
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
 				/* scale around tuning airspeed */
 				float airspeed;
@@ -1209,6 +1218,7 @@ FixedwingAttitudeControl::task_main()
 				}
 
 			} else {
+				/* 手动模式 */
 				/* manual/direct control */
 				_actuators.control[actuator_controls_s::INDEX_ROLL] = _manual.y + _parameters.trim_roll;
 				_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x + _parameters.trim_pitch;

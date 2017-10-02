@@ -180,7 +180,58 @@ PARAM_DEFINE_INT32(MAV_SYS_ID,1)
 1. fw_att_control_main的入口，实现start|stop|status功能，给namespace::g_control指针赋值。
 2. 调用g_control->start()开始类中的函数
 3. 调用px4_task_spawn_cmd来运行task_main_trampoline,通过这个函数调用task_main()开始姿态调整
-4. ​
+4. 更新所有状态，然后监控\_params_sub,_\_ctrl_state_sub，最慢500ms更新一次
+5. 1. perf_begin(_loop_perf)
+   2. 判断\_params是否需要更新
+   3. 当姿态发生变化，run controller
+   4. 1. 判断当前调整与上一次调整的时间间隔，如果大与1.0f，置为0.01f
+      2. 保存控制信息到\_ctrl_state
+      3. 从\_ctrl_state中获取旋转矩阵和欧拉角度。
+      4. 更新所有状态
+      5. 判断是否开始控制，否则锁定积分器
+      6. 判断故障否
+      7. 先获取输入襟翼舵量flaps_control(有手动自动之分)
+      8. 根据与上一次输入舵量的比较，判断是否更新输入，然后记录更改的时间t_flaps_changed，变化舵量delta_flaps,
+      9. 最后对输出flaps_applied做平滑处理，防止在短时间内，变化过大，*flaps_applied = flaps_control (输入量) - (1 - delta_T(时间变化量)) * delta_flaps*, 流程代码见附加1
+      10. 副翼控制流程同上
+      11. ​
 
 
+#####附录1
+
+````c++
+
+//fw_att_control_main.cpp
+//line:843
+			/* default flaps（振翅，应该是襟翼舵量） to center */
+			float flaps_control = 0.0f;  //flaps_control 可以看作当前的输入舵量
+
+			static float delta_flaps = 0;   // 舵量的变化值
+
+			/* map flaps by default to manual if valid */
+			/* 从手动输入通道获取输入值，判读是否合法 */
+			if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled) {
+				flaps_control = 0.5f * (_manual.flaps + 1.0f) * _parameters.flaps_scale;
+
+			} else if (_vcontrol_mode.flag_control_auto_enabled) {
+				flaps_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
+			}
+
+			// move the actual control value continuous with time
+			static hrt_abstime t_flaps_changed = 0;   //上一次更新舵量的绝对时间
+
+			if (fabsf(flaps_control - _flaps_cmd_last) > 0.01f) {   //flaps_cmd_last 是上一次修改舵量的值
+				t_flaps_changed = hrt_absolute_time();
+				delta_flaps = flaps_control - _flaps_cmd_last;		//记录当前输入和上一次输入的差值
+				_flaps_cmd_last = flaps_control;
+			}
+
+			static float flaps_applied = 0.0f;		//最终输出舵量
+
+			if (fabsf(flaps_applied - flaps_control) > 0.01f) {
+				//为了平滑处理，防止输出量出现阶跃的现象
+				// flaps_applied = flaps_control (输入量) - (1 - delta_T(时间变化量)) * delta_flaps;
+				flaps_applied = (flaps_control - delta_flaps) + (float)hrt_elapsed_time(&t_flaps_changed) * (delta_flaps) / 1000000;
+			}
+````
 
