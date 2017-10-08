@@ -64,8 +64,8 @@ void Landingslope::calculateSlopeValues()
 {
 	_H0 =  _flare_relative_alt + _H1_virt;
 	_d1 = _flare_relative_alt/tanf(_landing_slope_angle_rad);
-	_flare_constant = (_H0 * _d1)/_flare_relative_alt;
-	_flare_length = - logf(_H1_virt/_H0) * _flare_constant;
+	_flare_constant = (_H0 * _d1)/_flare_relative_alt; //按绝对高度比例的d1
+	_flare_length = - logf(_H1_virt/_H0) * _flare_constant; //按log的比例调整d1 + delta d
 	_horizontal_slope_displacement = (_flare_length - _d1);
 }
 

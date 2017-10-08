@@ -39,7 +39,7 @@ Ardupilot是APM的固件
 
 ##PX4模块
 
-### uORB（Micro Object Request Broker，微对象请求代理器）
+### uORB模块（Micro Object Request Broker，微对象请求代理器）
 
 ​	uORB是Pixhawk系统中关键的一个模块，肩负了*数据传输*任务。所有传感器，数据传输任务，GPS，PPM信号从芯片获取后通过uORB进行传输，到各个模块计算处理。（可以理解为数据中心仓库）
 
@@ -112,7 +112,7 @@ PARAM_DEFINE_INT32(MAV_SYS_ID,1)
   获取param的地址并赋给val，调用param_get_value_ptr(param)
 ```
 
-###land_detector
+###land_detector模块
 
 #### class LandDetector  
 
@@ -152,13 +152,13 @@ PARAM_DEFINE_INT32(MAV_SYS_ID,1)
 	
 ````
 
-### local_position_estimator
+### local_position_estimator模块
 
 
 
 
 
-### fw_att_control
+### **fw_att_control模块**
 
 #### class FixedwingAttitudeControl
 
@@ -269,4 +269,72 @@ PARAM_DEFINE_INT32(MAV_SYS_ID,1)
 				flaps_applied = (flaps_control - delta_flaps) + (float)hrt_elapsed_time(&t_flaps_changed) * (delta_flaps) / 1000000;
 			}
 ````
+
+### **fw_pos_control模块**
+
+####class landingslope 
+
+为固定翼着陆的角度变化模块
+
+- calulateSlopeValues() void private
+
+  更新H1,H0,d1,根据log（H0/H1）的比例调整 d1 / d1+ delta d的比例，更新其他参数
+
+- getLandingSlopeRelativeAltitude(wp_landing_distance) float
+
+  返回在距离落航点的着陆坡上点的相对高度，调用多参数的同名函数
+
+- getLandingSlopeRelativeAltitudeSave(wp_landing_distance,bearing_lastwp_currwp,bearing_airplane_currwp) float public
+
+  检查飞行器是否在航点上来避免爬升
+
+- getLandingSlopeAbsoluteAltitude(wp_landing_distance,wp_altitude) float
+
+  返回在距离落航点的着陆坡上点的绝对高度
+
+- getLandingSlopeAbsoluteAltitudeSave(wp_landing_distance,bearing_last_wp_currwp,bearing_airplane_currwp) float
+
+  检查飞行器是否在航点上来避免爬升
+
+- getLandingSlopeRelativeAltitude(wp_landing_distance,horizontal_slope_displacement,landing_slope_angle_rad) float static
+
+  返回h_flare.rel的高度，返回在距离落航点的着陆坡上点的相对高度
+
+- getLandingSlopeAbsoluteAltitude(wp_landing_distance,wp_landing_altitude,horizontal_slope_displacement,landing_slope_angle_rad) float static
+
+  返回h_flare.rel + H1的高度，返回在距离落航点的着陆坡上点的绝对高度
+
+- getLandigSlopeWPDistance(slope_altitude,wp_landing_altitude,horizontal_slope_displacement,landing_slope_angle_rad) float static
+
+  给定降落高度，返回距离预定降落点的距离
+
+- getFlareCurveRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp) float
+
+- getFlareCurveRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp, wp_altitude) float
+
+  获取Flare曲线的相对高度
+
+- updata(landing_slope_angle_Rad_new, flare_relative_alt_new, mmotor_lim_relative_alt_new, H1_virt_new) void
+
+  将值重新赋值，并且重新调用calcuateSlopeValues()
+
+  ​
+
+##QgroundControl安装
+
+下载网站：
+
+https://docs.qgroundcontrol.com/en/getting_started/download_and_install.html
+
+依赖包补丁（有些库没有，需要自己安装）：
+
+``sudo apt-get install espeak libespeak-dev libudev-dev libsd2-2.0-0``
+
+然后按教程运行：
+
+```shell
+tar jxf QGroundControl.tar.bz2
+cd qgroundcontrol
+./qgroundcontrol-start.sh
+```
 

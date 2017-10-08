@@ -47,15 +47,15 @@ class Landingslope
 {
 private:
 	/* see Documentation/fw_landing.png for a plot of the landing slope */
-	float _landing_slope_angle_rad;			/**< phi in the plot */
-	float _flare_relative_alt;				/**< h_flare,rel in the plot */
+	float _landing_slope_angle_rad;			/**< phi in the plot 图中的phi角*/
+	float _flare_relative_alt;				/**< h_flare,rel in the plot 图中h_flare,rel */
 	float _motor_lim_relative_alt;
-	float _H1_virt;							/**< H1 in the plot */
-	float _H0;								/**< h_flare,rel + H1 in the plot */
-	float _d1;								/**< d1 in the plot */
+	float _H1_virt;							/**< H1 in the plot 图中H1*/
+	float _H0;								/**< h_flare,rel + H1 in the plot H0=H1 + h_flare,rel */
+	float _d1;								/**< d1 in the plot 图中d1*/
 	float _flare_constant;
-	float _flare_length;					/**< d1 + delta d in the plot */
-	float _horizontal_slope_displacement;  /**< delta d in the plot */
+	float _flare_length;					/**< d1 + delta d in the plot 图中d1 + delta d */
+	float _horizontal_slope_displacement;  /**< delta d in the plot 图中 delta d*/
 
 	void calculateSlopeValues();
 
@@ -67,6 +67,7 @@ public:
 	/**
 	 *
 	 * @return relative altitude of point on landing slope at distance to landing waypoint=wp_landing_distance
+	 * @return 返回在距离落航点的着陆坡上点的相对高度
 	 */
 	float getLandingSlopeRelativeAltitude(float wp_landing_distance);
 
@@ -74,6 +75,7 @@ public:
 	 *
 	 * @return relative altitude of point on landing slope at distance to landing waypoint=wp_landing_distance
 	 * Performs check if aircraft is in front of waypoint to avoid climbout
+	 * 检查飞行器是否在航点上来避免爬升
 	 */
 	float getLandingSlopeRelativeAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp, float bearing_airplane_currwp);
 
@@ -81,6 +83,7 @@ public:
 	/**
 	 *
 	 * @return Absolute altitude of point on landing slope at distance to landing waypoint=wp_landing_distance
+	 * @return 返回在距离落航点的着陆坡上点的绝对高度
 	 */
 	float getLandingSlopeAbsoluteAltitude(float wp_landing_distance, float wp_altitude);
 
@@ -94,6 +97,7 @@ public:
 	/**
 	 *
 	 * @return Relative altitude of point on landing slope at distance to landing waypoint=wp_landing_distance
+	 * 返回 h_flare.rel的高度
 	 */
 	__EXPORT static float getLandingSlopeRelativeAltitude(float wp_landing_distance, float horizontal_slope_displacement, float landing_slope_angle_rad)
 	{
@@ -103,6 +107,7 @@ public:
 	/**
 	 *
 	 * @return Absolute altitude of point on landing slope at distance to landing waypoint=wp_landing_distance
+	 * 返回 H1 + h_flare.rel的高度
 	 */
 	__EXPORT static float getLandingSlopeAbsoluteAltitude(float wp_landing_distance, float wp_landing_altitude, float horizontal_slope_displacement, float landing_slope_angle_rad)
 	{
@@ -112,6 +117,7 @@ public:
 	/**
 	 *
 	 * @return distance to landing waypoint of point on landing slope at altitude=slope_altitude
+	 * 返回给定降落高度后距离预定降落点的距离，给定h_flare.rel+H1, H1, delta d,phi
 	 */
 	__EXPORT static float getLandingSlopeWPDistance(float slope_altitude, float wp_landing_altitude, float horizontal_slope_displacement, float landing_slope_angle_rad)
 	{
@@ -119,6 +125,7 @@ public:
 
 	}
 
+	/* 获取 Flare曲线的相对高度 */
 	float getFlareCurveRelativeAltitudeSave(float wp_distance, float bearing_lastwp_currwp, float bearing_airplane_currwp);
 
 	float getFlareCurveAbsoluteAltitudeSave(float wp_distance, float bearing_lastwp_currwp, float bearing_airplane_currwp, float wp_altitude);
