@@ -318,7 +318,103 @@ PARAM_DEFINE_INT32(MAV_SYS_ID,1)
 
   将值重新赋值，并且重新调用calcuateSlopeValues()
 
-  ​
+#### class FixedwingPositionControl
+
+- start() int static  public
+
+  开始控制
+
+- task_running() bool
+
+  任务的状态
+
+- parameters_update() int  *private*
+
+  更新所有的类内参数
+
+- control_update() void
+
+  更新控制输出
+
+- vehicle_control_mode_poll()
+
+  飞行器模式更新
+
+- vehicle_status_poll()
+
+  飞行器状态更新
+
+- vehicle_manual_control_setpoint_poll()
+
+  飞行器手动控制设定点更新
+
+- control_state_poll()
+
+  控制状态更新
+
+- vehicle_sensor_combined_poll()
+
+  飞行器加速度状态更新
+
+- vehicle_setpoint_poll()
+
+  设置点更新
+
+- navigation_capabilities_publish()
+
+  导航能力输出
+
+- get_waypoint_heading_distance(heading, distance, wp_prev, wp_nest) void
+
+  基于方向和当前的距离获取下一个waypoint
+
+- get_terrain_altitude_landing() float
+
+  返回降落点的地形高度估计，在降落的时候：根据设定点的高度或者有可能的话使用地形估计
+
+- get_terrain_altitude_takeoff() float
+
+  返回起飞地形或者返回高度在地形估计不可用的情况下
+
+- in_takeoff_situation() bool
+
+  检查是否在合法的起飞地点
+
+- do_takeoff_help(hold_altitude, pitch_limit_min_mininum) 
+
+  定高模式下的起飞帮助
+
+- update_desired_altitude(dt) bool
+
+  根据俯仰输入更新期望高度,参数为Time step，单位时间
+
+- control_position(global_pos, ground_speed, pos_sp_triplet) bool
+
+  控制位置
+
+- get_tecs_pitch() float
+
+- get_tecs_thrust() float
+
+- get_demanded_airspeed() float
+
+  获取需要的空速大小
+
+- calculate_target_airspeed(airspeed_demand) float
+
+- calualte_gndspeed_undershoot(current_pos, ground\_speed_2d, pos_sp_triplet) void
+
+- task_main_trampoline()
+
+- task_main() void
+
+- reset_takeoff_state() void
+
+- reset_landing_state() void
+
+- tecs_update_pitch_trottle() void
+
+  一个调用实现TECS的包装器函数(mTECS是只通过参数启用)
 
 ##QgroundControl安装
 

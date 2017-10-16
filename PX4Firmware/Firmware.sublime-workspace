@@ -1,0 +1,711 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"aidev",
+				"AiDevId"
+			],
+			[
+				"ret",
+				"return"
+			],
+			[
+				"s32",
+				"s32ret"
+			],
+			[
+				"enMod",
+				"enModId"
+			],
+			[
+				"AiDev",
+				"aiDev"
+			],
+			[
+				"Hi",
+				"HI_S32"
+			],
+			[
+				"set",
+				"setup_ai"
+			],
+			[
+				"y",
+				"ylabel\tfunction"
+			],
+			[
+				"x",
+				"xcord2\tstatement"
+			],
+			[
+				"yco",
+				"ycord2\tstatement"
+			],
+			[
+				"xor",
+				"xcord2\tstatement"
+			],
+			[
+				"da",
+				"dataArr\tstatement"
+			],
+			[
+				"dat",
+				"dataMat"
+			],
+			[
+				"ap",
+				"alpha\tstatement"
+			],
+			[
+				"lab",
+				"labelMat\tstatement"
+			],
+			[
+				"cla",
+				"classLabels\tparam"
+			],
+			[
+				"la",
+				"labelMat\tstatement"
+			],
+			[
+				"lin",
+				"lineArr\tstatement"
+			],
+			[
+				"read",
+				"readline\tfunction"
+			],
+			[
+				"s",
+				"sqrt\tfunction"
+			],
+			[
+				"test",
+				"testVec\tstatement"
+			],
+			[
+				"voc",
+				"vocList\tparam"
+			],
+			[
+				"true",
+				"True\tinstance"
+			],
+			[
+				"你",
+				"你给我开灯试试"
+			],
+			[
+				"不",
+				"不准给我关灯"
+			],
+			[
+				"sor",
+				"sorted\tfunction"
+			],
+			[
+				"p3",
+				"p3Vect\tstatement"
+			],
+			[
+				"sort",
+				"sortSz\tstatement"
+			],
+			[
+				"p4",
+				"p4Denom\tstatement"
+			],
+			[
+				"train",
+				"trainMatrix\tparam"
+			],
+			[
+				"trai",
+				"trainMatrix\tparam"
+			],
+			[
+				"tra",
+				"trainMatrix\tparam"
+			],
+			[
+				"pab",
+				"pAbusive4\tparam"
+			],
+			[
+				"pa",
+				"pAbusive4\tstatement"
+			],
+			[
+				"words",
+				"wordslist"
+			],
+			[
+				"clas",
+				"classVec\tstatement"
+			],
+			[
+				"word",
+				"wordslist"
+			],
+			[
+				"load",
+				"loadDateSet\tfunction"
+			],
+			[
+				"tets",
+				"testEntery\tstatement"
+			],
+			[
+				"p1",
+				"p1Vect\tstatement"
+			],
+			[
+				"p0",
+				"p0Vect\tstatement"
+			],
+			[
+				"tr",
+				"trainCategory\tparam"
+			],
+			[
+				"wor",
+				"words\tforstmt"
+			],
+			[
+				"num",
+				"numpy\tmodule"
+			],
+			[
+				"key",
+				"keys\tstatement"
+			],
+			[
+				"k",
+				"keys\tfunction"
+			],
+			[
+				"tot",
+				"totalW"
+			],
+			[
+				"max",
+				"maxDepth\tstatement"
+			],
+			[
+				"get",
+				"getNumLeafs\tfunction"
+			],
+			[
+				"ke",
+				"key\tforstmt"
+			],
+			[
+				"ax",
+				"axl"
+			],
+			[
+				"arr",
+				"arrow_args\tstatement"
+			],
+			[
+				"cre",
+				"createTree\tfunction"
+			],
+			[
+				"class",
+				"classList"
+			],
+			[
+				"m",
+				"myTree"
+			],
+			[
+				"best",
+				"bestFeat"
+			],
+			[
+				"bes",
+				"bestFeatLabel"
+			],
+			[
+				"re",
+				"return"
+			],
+			[
+				"cl",
+				"calcShannonEnt"
+			],
+			[
+				"spl",
+				"splitDataSet"
+			],
+			[
+				"sp",
+				"splitDataSet"
+			],
+			[
+				"red",
+				"reducedFeatVec"
+			],
+			[
+				"upl",
+				"uploadFile"
+			],
+			[
+				"ftp",
+				"ftpdir"
+			],
+			[
+				"fi",
+				"file_hander"
+			],
+			[
+				"fil",
+				"filelist"
+			],
+			[
+				"de",
+				"decode"
+			],
+			[
+				"file",
+				"file_hander"
+			],
+			[
+				"ft",
+				"ftp"
+			],
+			[
+				"cur",
+				"cur_mac"
+			],
+			[
+				"dst",
+				"dst_mac"
+			],
+			[
+				"hea",
+				"handlines"
+			],
+			[
+				"hand",
+				"handlines"
+			],
+			[
+				"_",
+				"_init_"
+			],
+			[
+				"sub",
+				"substitution"
+			],
+			[
+				"call",
+				"callback"
+			],
+			[
+				"arg",
+				"args"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "src/modules/systemlib/param/param.h",
+			"settings":
+			{
+				"buffer_size": 13409,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "src/modules/fw_pos_control_l1/fw_pos_control_l1_main.cpp",
+			"settings":
+			{
+				"buffer_size": 84058,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 203.0,
+		"last_filter": "Package Control: insta",
+		"selected_items":
+		[
+			[
+				"Package Control: insta",
+				"Package Control: Install Package"
+			],
+			[
+				"pack",
+				"Package Control: Advanced Install Package"
+			],
+			[
+				"",
+				"About"
+			],
+			[
+				"Package Control: install Package",
+				"Package Control: Install Package"
+			],
+			[
+				"Package Control: install",
+				"Package Control: Install Package"
+			],
+			[
+				"Package Control: ins",
+				"Package Control: Install Package"
+			],
+			[
+				"Package Control: ",
+				"Package Control: Remove Package"
+			],
+			[
+				"Package Control: ana",
+				"Package Control: Advanced Install Package"
+			],
+			[
+				"anac",
+				"Package Control: Advanced Install Package"
+			]
+		],
+		"width": 800.0
+	},
+	"console":
+	{
+		"height": 308.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = 'df21e130d211cfc94d9b0905775a7c0f' + '1e3d39e33b79698005270310898eea76'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)",
+			"install packet",
+			"anaconda",
+			"import urllib.request,os,hashlib; h = 'df21e130d211cfc94d9b0905775a7c0f' + '1e3d39e33b79698005270310898eea76'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/C/Users/87095/Desktop/pix_study/PX4Firmware",
+		"/C/Users/87095/Desktop/pix_study/PX4Firmware/src",
+		"/C/Users/87095/Desktop/pix_study/PX4Firmware/src/modules",
+		"/C/Users/87095/Desktop/pix_study/PX4Firmware/src/modules/fw_pos_control_l1"
+	],
+	"file_history":
+	[
+		"/C/Users/87095/Desktop/pix_study/PX4Firmware/src/modules/uORB/uORBManager_nuttx.cpp",
+		"/C/Users/87095/Desktop/PIX/ardupilot-masternew/ardupilot-master/docs/build-libs.sh",
+		"/C/Users/87095/Desktop/PIX/ardupilot-masternew/ardupilot-master/docs/setup.sh",
+		"/C/Users/87095/Desktop/Firmware-master/package.xml",
+		"/C/MyData/homework_Data/test/point_list.cpp",
+		"/C/MyData/fileUpLoad/嵌入式上机截图/enbandCode/test1/run.sh",
+		"/C/MyData/homework_Data/find.cpp",
+		"/C/Users/87095/Desktop/ardupilot-master/docs/setup.sh",
+		"/C/MyData/homework_Data/test/point_list. c",
+		"/C/Users/87095/Downloads/kaldi-master/egs/aishell/s5/local/download_and_untar.sh",
+		"/C/Users/87095/Downloads/kaldi-master/egs/aishell/s5/local/score.sh",
+		"/C/Users/87095/Downloads/kaldi-master/egs/aishell/s5/local/aishell_data_prep.sh",
+		"/C/Users/87095/AiToAo.c",
+		"/C/Users/87095/Downloads/kaldi-master/egs/aishell/s5/run.sh",
+		"/C/Users/87095/Downloads/kaldi-master/egs/aishell/s5/local/aishell_prepare_dict.sh",
+		"/C/Users/87095/Downloads/kaldi-master/tools/install_srilm.sh",
+		"/C/Users/87095/Downloads/kaldi-master/tools/install_pfile_utils.sh",
+		"/C/Users/87095/Downloads/kaldi-master/tools/install_atlas.sh",
+		"/C/Users/87095/Downloads/kaldi-master/egs/aishell/s5/path.sh",
+		"/C/Program Files (x86)/Google/Chrome/Application/chrome.VisualElementsManifest.xml",
+		"/C/Users/87095/Downloads/kaldi-master/egs/aishell/s5/cmd.sh",
+		"/C/Users/87095/Downloads/linux-4.4.73/linux-4.4.73/fs/proc/base.c",
+		"/C/Users/87095/Downloads/linux-4.4.73/linux-4.4.73/fs/proc/cpuinfo.c",
+		"/C/MyData/tmpData/Hi3516AV100R001C01SPC060/Hi3516A V100R001C01SPC060/01.software/board/Hi3516A_SDK_V1.0.6.0/Hi3516A_SDK_V1.0.6.0/package/mpp/mpp/sample/common/sample_comm_sys.c",
+		"/C/MyData/tmpData/Hi3516AV100R001C01SPC060/Hi3516A V100R001C01SPC060/01.software/board/Hi3516A_SDK_V1.0.6.0/Hi3516A_SDK_V1.0.6.0/package/mpp/mpp/sample/common/sample_comm_audio.c",
+		"/C/MyData/tmpData/Hi3516AV100R001C01SPC060/Hi3516A V100R001C01SPC060/01.software/board/Hi3516A_SDK_V1.0.6.0/Hi3516A_SDK_V1.0.6.0/package/mpp/mpp/sample/common/sample_comm.h",
+		"/C/MyData/tmpData/Hi3516AV100R001C01SPC060/Hi3516A V100R001C01SPC060/01.software/board/Hi3516A_SDK_V1.0.6.0/Hi3516A_SDK_V1.0.6.0/package/mpp/mpp/sample/audio/sample_audio.c",
+		"/C/MyData/All_Code/C++/Hi3516/test1.c",
+		"/C/MyData/tmpData/Hi3516AV100R001C01SPC060/Hi3516A V100R001C01SPC060/01.software/board/Hi3516A_SDK_V1.0.6.0/Hi3516A_SDK_V1.0.6.0/package/mpp/mpp/extdrv/tlv320aic31/tlv320aic31.c",
+		"/C/MyData/tmpData/Hi3516AV100R001C01SPC060/Hi3516A V100R001C01SPC060/01.software/board/Hi3516A_SDK_V1.0.6.0/Hi3516A_SDK_V1.0.6.0/package/mpp/mpp/extdrv/ak7756en/ak7756en.c",
+		"/C/MyData/tmpData/Hi3516AV100R001C01SPC060/Hi3516A V100R001C01SPC060/01.software/board/Hi3516A_SDK_V1.0.6.0/Hi3516A_SDK_V1.0.6.0/package/mpp/mpp/tools/ai_dump.c",
+		"/C/MyData/tmpData/code/code/sample/common/sample_comm_isp.c",
+		"/C/MyData/tmpData/code/code/sample/common/sample_comm_vpss.c",
+		"/C/MyData/tmpData/code/code/sample/common/sample_comm_vi.c",
+		"/C/MyData/tmpData/code/code/sample/common/sample_comm_venc.c",
+		"/C/MyData/tmpData/code/code/sample/common/sample_comm_vda.c",
+		"/C/MyData/tmpData/code/code/sample/common/sample_comm_vo.c",
+		"/C/MyData/tmpData/code/code/sample/common/loadbmp.c",
+		"/C/MyData/fileUpLoad/嵌入式上机截图/enbandCode/test3/drive.c",
+		"/C/MyData/fileUpLoad/嵌入式上机截图/enbandCode/test2/drive.c",
+		"/C/MyData/homework_Data/网络程序设计/5.Linux进程与信号机制/code/zombie1.c",
+		"/C/MyData/homework_Data/网络程序设计/5.Linux进程与信号机制/code/zombie3.c",
+		"/C/MyData/homework_Data/网络程序设计/5.Linux进程与信号机制/code/zombie.c",
+		"/C/MyData/homework_Data/网络程序设计/5.Linux进程与信号机制/code/zombie4.c",
+		"/C/MyData/homework_Data/网络程序设计/5.Linux进程与信号机制/code/zombie2.c",
+		"/C/MyData/homework_Data/网络程序设计/4.UDP与原始SOCKET编程/raw.c",
+		"/C/MyData/homework_Data/网络程序设计/5.Linux进程与信号机制/code/comm_func.cpp",
+		"/C/MyData/homework_Data/网络程序设计/3.高级socket函数/client.cpp",
+		"/C/MyData/homework_Data/网络程序设计/3.高级socket函数/server.cpp",
+		"/C/MyData/homework_Data/SA大作业/SA大作业/第四题/Hadoop文件系统源代码/java/org/apache/hadoop/fs/AbstractFileSystem.java",
+		"/C/MyData/homework_Data/SA大作业/SA大作业/第四题/Hadoop文件系统源代码/java/org/apache/hadoop/fs/ftp/FTPInputStream.java",
+		"/C/MyData/homework_Data/SA大作业/SA大作业/第四题/Hadoop文件系统源代码/java/hdfs-default.xml",
+		"/C/MyData/homework_Data/SA大作业/SA大作业/第四题/Hadoop文件系统源代码/java/core-default.xml",
+		"/C/MyData/homework_Data/1/FsShell_mark.java",
+		"/C/MyData/homework_Data/1/RawLocalFileSystem.java",
+		"/C/MyData/homework_Data/1/Trash.java",
+		"/C/MyData/homework_Data/1/PositionedReadable.java",
+		"/C/MyData/homework_Data/1/Syncable.java",
+		"/C/MyData/homework_Data/1/Seekable.java",
+		"/C/MyData/homework_Data/1/UnresolvedLinkException.java",
+		"/C/MyData/homework_Data/1/UnsupportedFileSystemException.java",
+		"/C/MyData/homework_Data/1/Path.java",
+		"/C/MyData/homework_Data/1/Options.java",
+		"/C/MyData/homework_Data/1/MD5MD5CRC32FileChecksum.java",
+		"/C/MyData/homework_Data/1/PathFilter.java",
+		"/C/MyData/homework_Data/1/LocalFileSystemConfigKeys.java",
+		"/C/MyData/homework_Data/1/ParentNotDirectoryException.java",
+		"/C/MyData/homework_Data/1/LocalFileSystem.java",
+		"/C/MyData/homework_Data/1/Hdfs.java",
+		"/C/MyData/homework_Data/1/InvalidPathException.java",
+		"/C/MyData/homework_Data/1/GlobExpander.java",
+		"/C/MyData/homework_Data/1/LocalDirAllocator.java",
+		"/C/MyData/All_Code/python/DCT2.py",
+		"/C/MyData/All_Code/python/bayes.py",
+		"/C/MyData/All_Code/python/ftp.py",
+		"/C/MyData/All_Code/Java/ScanPort/src/ScanPort.java",
+		"/C/MyData/All_Code/Java/ftpCient/src/ftpCient/SimpleFTP.java",
+		"/C/MyData/homework_Data/1/FsUrlStreamHandlerFactory.java",
+		"/C/MyData/homework_Data/1/FsUrlStreamHandler.java",
+		"/C/MyData/homework_Data/1/FsUrlConnection.java",
+		"/C/MyData/homework_Data/1/FsStatus.java",
+		"/C/MyData/homework_Data/1/FsShellPermissions.java",
+		"/C/MyData/homework_Data/1/FsShell.java",
+		"/C/MyData/homework_Data/1/FsServerDefaults.java",
+		"/C/MyData/homework_Data/1/FSOutputSummer.java",
+		"/C/MyData/homework_Data/1/FSInputStream.java",
+		"/C/MyData/homework_Data/1/FSInputChecker.java",
+		"/C/MyData/homework_Data/1/FSError.java",
+		"/C/MyData/homework_Data/1/FSDataInputStream.java",
+		"/C/MyData/homework_Data/1/FSDataOutputStream.java",
+		"/C/MyData/homework_Data/1/FsConstants.java",
+		"/C/MyData/homework_Data/1/FsConfig.java",
+		"/C/MyData/homework_Data/1/AbstractFileSystem.java",
+		"/C/MyData/tmpData/Hi3516AV100R001C01SPC060/Hi3516A V100R001C01SPC060/01.software/board/document_cn/Hi3516A／Hi3516D SDK 安装以及升级使用说明.txt",
+		"/C/Users/87095/AppData/Roaming/Sublime Text 3/Packages/Anaconda/Default (Windows).sublime-keymap",
+		"/C/Users/87095/AppData/Roaming/Sublime Text 3/Packages/Anaconda/Anaconda.sublime-settings",
+		"/C/Users/87095/AppData/Roaming/Sublime Text 3/Packages/User/Anaconda.sublime-settings",
+		"/C/MyData/All_Code/python/packetSniffer.py",
+		"/C/MyData/All_Code/python/plotFigure.py",
+		"/C/MyData/All_Code/python/decision_tree.py",
+		"/C/Users/87095/AppData/Roaming/Sublime Text 3/Packages/Anaconda/README.md",
+		"/C/MyData/All_Code/python/test_coding.py",
+		"/C/MyData/All_Code/python/arp_fir.py",
+		"/C/MyData/All_Code/python/website.xml",
+		"/C/MyData/homework_Data/sphinx4-1.0beta6-bin/sphinx4-1.0beta6/bin/HelloWorld/edu/cmu/sphinx/demo/helloworld/helloworld.config.xml",
+		"/C/MyData/All_Code/python/xmlParser.py",
+		"/C/MyData/homework_Data/sphinx4-1.0beta6-bin/sphinx4-1.0beta6/bin/Dialog/edu/cmu/sphinx/demo/jsapi/dialog/MyBehavior.class",
+		"/C/MyData/homework_Data/sphinx4-1.0beta6-bin/sphinx4-1.0beta6/bin/HelloWorld/edu/cmu/sphinx/demo/helloworld/HelloWorld.class",
+		"/C/MyData/All_Code/python/util.py",
+		"/C/MyData/All_Code/python/markup.py",
+		"/C/MyData/All_Code/python/handler.py",
+		"/C/MyData/All_Code/python/hander"
+	],
+	"find":
+	{
+		"height": 56.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			");\n",
+			"SAMPLE_COMM_AUDIO_CfgAcodec",
+			"HI_MPI_SYS_Exit",
+			"SAMPLE_COMM_SYS_Init"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "src/modules/systemlib/param/param.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 13409,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2788,
+								2797
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 2253.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/modules/fw_pos_control_l1/fw_pos_control_l1_main.cpp",
+					"semi_transient": true,
+					"settings":
+					{
+						"buffer_size": 84058,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3917,
+								3917
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 26819.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 56.0
+	},
+	"input":
+	{
+		"height": 62.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "Firmware.sublime-project",
+	"replace":
+	{
+		"height": 104.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 420.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

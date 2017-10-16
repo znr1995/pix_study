@@ -434,7 +434,7 @@ private:
 	 * @param pitch_limit_min minimum pitch allowed
 	 */
 	void 		do_takeoff_help(float *hold_altitude, float *pitch_limit_min);
-
+		
 	/**
 	 * Update desired altitude base on user pitch stick input
 	 *
