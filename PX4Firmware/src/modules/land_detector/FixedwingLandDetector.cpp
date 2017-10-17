@@ -101,11 +101,11 @@ bool FixedwingLandDetector::update()
 	const uint64_t now = hrt_absolute_time();
 	bool landDetected = false;
 
-	if (hrt_elapsed_time(&_controlState.timestamp) < 500 * 1000) {
+	if (hrt_elapsed_time(&_controlState.timestamp) < 500 * 1000) {  //据上一次更新500ms内，状态没有超时
 		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_controlState.x_vel *
 				_controlState.x_vel + _controlState.y_vel * _controlState.y_vel);
 
-		if (PX4_ISFINITE(val)) {
+		if (PX4_ISFINITE(val)) {   //判断是否合法，没有溢出
 			_velocity_xy_filtered = val;
 		}
 
@@ -122,12 +122,14 @@ bool FixedwingLandDetector::update()
 		_accel_horz_lp = _accel_horz_lp * 0.8f + _controlState.horz_acc_mag * 0.18f;
 
 		// crude land detector for fixedwing
+		// 粗略估计降落预测
 		if (_velocity_xy_filtered < _params.maxVelocity
 		    && _velocity_z_filtered < _params.maxClimbRate
 		    && _airspeed_filtered < _params.maxAirSpeed
 		    && _accel_horz_lp < _params.maxIntVelocity) {
 
-			// these conditions need to be stable for a period of time before we trust them
+			// these conditions need to be stable for a period of time before we trust them 
+			//在我们确信他之前，应该确保条件稳定	
 			if (now > _landDetectTrigger) {
 				landDetected = true;
 			}

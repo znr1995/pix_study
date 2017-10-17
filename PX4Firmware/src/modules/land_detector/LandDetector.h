@@ -70,6 +70,8 @@ public:
 	/**
 	 * @brief Blocking function that should be called from it's own task thread. This method will
 	 *        run the underlying algorithm at the desired update rate and publish if the landing state changes.
+	 * 
+	 * @brief 应该在线程中被调用。此函数是实现按照预定更新速率并当信息更新时输出的实际方法。
 	 **/
 	int start();
 
@@ -80,6 +82,8 @@ protected:
 	/**
 	* @brief Pure abstract method that must be overriden by sub-classes. This actually runs the underlying algorithm
 	* @return true if a landing was detected and this should be broadcast to the rest of the system
+	* @brief 纯虚方法，必须被子类重写，实际运行的算法。
+	* @return 如果检测到降落返回true并且通过广播来更新系统
 	**/
 	virtual bool update() = 0;
 

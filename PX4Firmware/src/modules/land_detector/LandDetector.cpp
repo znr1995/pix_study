@@ -34,6 +34,13 @@
 /**
  * @file LandDetector.cpp
  * Land detection algorithm
+ * 
+ * 类的实现逻辑：
+ * 调用LandDetector::start()方法 =>将LandDetector::cycle_trampoline()加入全局工作队列中，参数时当前对象的指针
+ * cycle_trampoline()将参数转化为LandDetecotr的基类指针，然后调用LandDetector::cycle()
+ * 在cycle()中，如果没有初始化，初始化！然后更新状态，通过uORB输出状态，如果没有退出标识，将cycle_trampoline()再次加入工作队列，等待下次调用。
+ * 
+ * 
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
  * @author Morten Lysgaard <morten@lysgaard.no>

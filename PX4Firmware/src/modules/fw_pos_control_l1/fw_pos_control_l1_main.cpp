@@ -101,18 +101,18 @@
 #include <vtol_att_control/vtol_type.h>
 
 static int	_control_task = -1;			/**< task handle for sensor task */
-#define HDG_HOLD_DIST_NEXT 			3000.0f 	// initial distance of waypoint in front of plane in heading hold mode
-#define HDG_HOLD_REACHED_DIST 		1000.0f 	// distance (plane to waypoint in front) at which waypoints are reset in heading hold mode
+#define HDG_HOLD_DIST_NEXT 			3000.0f 	// initial distance of waypoint in front of plane in heading hold mode 巡航时候默认下一个航点的距离
+#define HDG_HOLD_REACHED_DIST 		1000.0f 	// distance (plane to waypoint in front) at which waypoints are reset in heading hold mode 重置后的航点距离
 #define HDG_HOLD_SET_BACK_DIST 		100.0f 		// distance by which previous waypoint is set behind the plane
-#define HDG_HOLD_YAWRATE_THRESH 	0.15f 		// max yawrate at which plane locks yaw for heading hold mode
-#define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 		// max manual roll input from user which does not change the locked heading
-#define T_ALT_TIMEOUT 				1 			// time after which we abort landing if terrain estimate is not valid
+#define HDG_HOLD_YAWRATE_THRESH 	0.15f 		// max yawrate at which plane locks yaw for heading hold mode 在巡航模式下最大的偏航速率
+#define HDG_HOLD_MAN_INPUT_THRESH 	0.01f 		// max manual roll input from user which does not change the locked heading 在巡航模式下最大的滚转速度
+#define T_ALT_TIMEOUT 				1 			// time after which we abort landing if terrain estimate is not valid 
 
 static constexpr float THROTTLE_THRESH =
 	0.05f; 	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
 static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
-	0.85f;	///< a throttle / pitch input above this value leads to the system switching to climbout mode
-static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
+	0.85f;	///< a throttle / pitch input above this value leads to the system switching to climbout mode 油门/俯仰输入超过这个值会使系统改变爬升模式
+static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f; 
 
 /**
  * L1 control app start / stop handling function
@@ -434,7 +434,7 @@ private:
 	 * @param pitch_limit_min minimum pitch allowed
 	 */
 	void 		do_takeoff_help(float *hold_altitude, float *pitch_limit_min);
-
+		
 	/**
 	 * Update desired altitude base on user pitch stick input
 	 *

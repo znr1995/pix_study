@@ -49,7 +49,7 @@ Ardupilot是APM的固件
 
 ##PX4模块
 
-### uORB（Micro Object Request Broker，微对象请求代理器）
+### uORB模块（Micro Object Request Broker，微对象请求代理器）
 
 ​	uORB是Pixhawk系统中关键的一个模块，肩负了*数据传输*任务。所有传感器，数据传输任务，GPS，PPM信号从芯片获取后通过uORB进行传输，到各个模块计算处理。（可以理解为数据中心仓库）
 
@@ -105,17 +105,11 @@ data:指向发布数据的制作
 
 `extern int orb_stat(int handle,uint64_t *time)`
 
-
-
-### Note:
+####Note:
 
 1. 必须要先orb_advertise()+orb_subscribe()后，才能使用orb_copy()	
 2. 所有主题在Firmware/Build_px4fmu-v2_default/Src_Modules/uORB/Topics
 3. 也可以到Firmware/Msg下找到
-
-## Daemon
-
-
 
 ### 参数获取
 
@@ -143,8 +137,326 @@ px4_daemon_thread_main:运行线程
 构造线程=>**px4_task_spawn_cmd**构建
 
 usage负责输出
+###land_detector模块
+
+#### class LandDetector  
+
+​	为降落检测算法提供统一接口
+
+- isRunning() bool public
+- isLanded() bool
+- shutdown() void
+- start()  void
+- cycle_trampoline() static void
+- update() virtual bool  protected
+- initialize() virtual void
+  - orb_update(xxx) bool  =>为了方便统计uORB订阅信息
+- cycle() void private
+
+````c++
+* 类的实现逻辑：
+ * 调用LandDetector::start()方法 =>将LandDetector::cycle_trampoline()加入全局工作队列中，参数时当前对象的指针
+ * cycle_trampoline()将参数转化为LandDetecotr的基类指针，然后调用LandDetector::cycle()
+ * 在cycle()中，如果没有初始化，初始化！然后更新状态updata()，通过uORB输出状态，如果没有退出标识，将cycle_trampoline()再次加入工作队列，等待下次调用
+````
 
 
+
+#### class FixedwingLandDetector
+
+- update() bool override protected
+- initialize() void override  -> 订阅信息
+- updateSubscriptions() void -> 更新信息 
+- updateParamterCache(const bool) void ->更新cache中的参数
+
+````c
+类的描述：
+	类订阅了control_state,vehicle_status,actuator_armed,airspeed信息。
+	实现了updata()方法：
+		更新_velocity_xy_filtered,_velocity_z_filtered,_airspeed_filtered,_accel_horz_lp四个参数，根据当前实际状态值，以不同比例，更新这几个参数
+	
+````
+
+### local_position_estimator模块
+
+
+
+
+
+### **fw_att_control模块**
+
+#### class FixedwingAttitudeControl
+
+- start() int **public** -> 控制程序开始入口
+- task_runing() bool 
+- paramters_update() int **private** -> 更新\_parameters的所有参数，并且更新\_roll_ctrl,\_yaw_ctrl,\_pitch_ctrl,\_wheel_ctrl参数
+- control_update() void  -> 更新控制输出
+- vehicle_control_mode_poll() void -> 检测控制模式是否改变，并从uORBcopy下来，存在private变量中，其他一样
+- vehicle_manual_poll() void ->  检测输入是否改变
+- vehicle_accel_poll() void  -> 检测加速度是否改变
+- vehicle_setpoint_poll() void -> 检测设定点是否改变
+- global_pos_poll() void  -> 检测位置是否改变
+- vehicle_status_poll() void -> 检测状态是否改变
+- task_main_trampoline(int argc,char* argv[]) void static
+- task_main() void -> 姿态调整的主线程
+
+类的主题实现流程：
+
+1. fw_att_control_main的入口，实现start|stop|status功能，给namespace::g_control指针赋值。
+2. 调用g_control->start()开始类中的函数
+3. 调用px4_task_spawn_cmd来运行task_main_trampoline,通过这个函数调用task_main()开始姿态调整
+4. 更新所有状态，然后监控\_params_sub,_\_ctrl_state_sub，最慢500ms更新一次
+5. 1. perf_begin(_loop_perf)，为止，应该是有关调度和资源分配的吧
+
+   2. 判断\_params是否需要更新
+
+   3. 当姿态发生变化，run controller
+
+   4. 1. 判断当前调整与上一次调整的时间间隔，如果大与1.0f，置为0.01f
+
+      2. 保存控制信息到\_ctrl_state
+
+      3. 从\_ctrl_state中获取旋转矩阵和欧拉角度。
+
+      4. 更新所有状态
+
+      5. 判断是否开始控制，否则锁定积分器
+
+      6. 判断故障否
+
+      7. 先获取输入襟翼舵量flaps_control(有手动自动之分)
+
+      8. 根据与上一次输入舵量的比较，判断是否更新输入，然后记录更改的时间t_flaps_changed，变化舵量delta_flaps,
+
+      9. 最后对输出flaps_applied做平滑处理，防止在短时间内，变化过大，*flaps_applied = flaps_control (输入量) - (1 - delta_T(时间变化量)) * delta_flaps*, 流程代码见附加1
+
+      10. 副翼控制流程同上
+
+      11. 根据_vcontrol_mode模式区别处理
+
+          - 自动模式下，先限制空速最小0.5,计算airspeed_scaling,groundspeed（地速），roll_sp,pitch_sp等
+
+          1. \_flag_control_auto_enabled，俯仰滚转姿态设定=_att_sp的参数+默认的偏移量，油门航向直接是设定的值。根据参数是否重置积分器
+
+          2. flag_control_velocity_enabled,定速巡航模式，同上，roll改变前只是会做点小判断
+
+          3. flag_control_altitude_enabled，定高模式，roll设定混入一定手动参数
+
+          4. 其他模式，半手动模式，roll=手动输入\*man_roll_max+rollsp_offset_rad,pitch=手动输入\*man_roll_max+pitch_offset_rad
+
+          5. 如果已经落地，重置积分器
+
+             将得到的参数输入control_input中，给\roll_ctrl,\_pitch_ctrl,\_yaw_ctrl,\_wheel_ctrl,在通过函数get_desired_rate()计算得到期望速率，然后输出给actuators对应通道
+
+          - 手动模式下，将手动输入值+\+parameter.trim_xx直接输出到_actuatuors中，作为最后的控制信号
+
+      12. 通过uORB输出对应的信息
+
+   5. loop_counter++;perf_end(\_loop_perf);
+
+   ​
+
+
+#####附录1
+
+````c++
+
+//fw_att_control_main.cpp
+//line:843
+			/* default flaps（振翅，应该是襟翼舵量） to center */
+			float flaps_control = 0.0f;  //flaps_control 可以看作当前的输入舵量
+
+			static float delta_flaps = 0;   // 舵量的变化值
+
+			/* map flaps by default to manual if valid */
+			/* 从手动输入通道获取输入值，判读是否合法 */
+			if (PX4_ISFINITE(_manual.flaps) && _vcontrol_mode.flag_control_manual_enabled) {
+				flaps_control = 0.5f * (_manual.flaps + 1.0f) * _parameters.flaps_scale;
+
+			} else if (_vcontrol_mode.flag_control_auto_enabled) {
+				flaps_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
+			}
+
+			// move the actual control value continuous with time
+			static hrt_abstime t_flaps_changed = 0;   //上一次更新舵量的绝对时间
+
+			if (fabsf(flaps_control - _flaps_cmd_last) > 0.01f) {   //flaps_cmd_last 是上一次修改舵量的值
+				t_flaps_changed = hrt_absolute_time();
+				delta_flaps = flaps_control - _flaps_cmd_last;		//记录当前输入和上一次输入的差值
+				_flaps_cmd_last = flaps_control;
+			}
+
+			static float flaps_applied = 0.0f;		//最终输出舵量
+
+			if (fabsf(flaps_applied - flaps_control) > 0.01f) {
+				//为了平滑处理，防止输出量出现阶跃的现象
+				// flaps_applied = flaps_control (输入量) - (1 - delta_T(时间变化量)) * delta_flaps;
+				flaps_applied = (flaps_control - delta_flaps) + (float)hrt_elapsed_time(&t_flaps_changed) * (delta_flaps) / 1000000;
+			}
+````
+
+### **fw_pos_control模块**
+
+####class landingslope 
+
+为固定翼着陆的角度变化模块
+
+- calulateSlopeValues() void private
+
+  更新H1,H0,d1,根据log（H0/H1）的比例调整 d1 / d1+ delta d的比例，更新其他参数
+
+- getLandingSlopeRelativeAltitude(wp_landing_distance) float
+
+  返回在距离落航点的着陆坡上点的相对高度，调用多参数的同名函数
+
+- getLandingSlopeRelativeAltitudeSave(wp_landing_distance,bearing_lastwp_currwp,bearing_airplane_currwp) float public
+
+  检查飞行器是否在航点上来避免爬升
+
+- getLandingSlopeAbsoluteAltitude(wp_landing_distance,wp_altitude) float
+
+  返回在距离落航点的着陆坡上点的绝对高度
 
 基本上示例都是这么一个结构
+- getLandingSlopeAbsoluteAltitudeSave(wp_landing_distance,bearing_last_wp_currwp,bearing_airplane_currwp) float
+
+  检查飞行器是否在航点上来避免爬升
+
+- getLandingSlopeRelativeAltitude(wp_landing_distance,horizontal_slope_displacement,landing_slope_angle_rad) float static
+
+  返回h_flare.rel的高度，返回在距离落航点的着陆坡上点的相对高度
+
+- getLandingSlopeAbsoluteAltitude(wp_landing_distance,wp_landing_altitude,horizontal_slope_displacement,landing_slope_angle_rad) float static
+
+  返回h_flare.rel + H1的高度，返回在距离落航点的着陆坡上点的绝对高度
+
+- getLandigSlopeWPDistance(slope_altitude,wp_landing_altitude,horizontal_slope_displacement,landing_slope_angle_rad) float static
+
+  给定降落高度，返回距离预定降落点的距离
+
+- getFlareCurveRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp) float
+
+- getFlareCurveRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp, bearing_airplane_currwp, wp_altitude) float
+
+  获取Flare曲线的相对高度
+
+- updata(landing_slope_angle_Rad_new, flare_relative_alt_new, mmotor_lim_relative_alt_new, H1_virt_new) void
+
+  将值重新赋值，并且重新调用calcuateSlopeValues()
+
+#### class FixedwingPositionControl
+
+- start() int static  public
+
+  开始控制
+
+- task_running() bool
+
+  任务的状态
+
+- parameters_update() int  *private*
+
+  更新所有的类内参数
+
+- control_update() void
+
+  更新控制输出
+
+- vehicle_control_mode_poll()
+
+  飞行器模式更新
+
+- vehicle_status_poll()
+
+  飞行器状态更新
+
+- vehicle_manual_control_setpoint_poll()
+
+  飞行器手动控制设定点更新
+
+- control_state_poll()
+
+  控制状态更新
+
+- vehicle_sensor_combined_poll()
+
+  飞行器加速度状态更新
+
+- vehicle_setpoint_poll()
+
+  设置点更新
+
+- navigation_capabilities_publish()
+
+  导航能力输出
+
+- get_waypoint_heading_distance(heading, distance, wp_prev, wp_nest) void
+
+  基于方向和当前的距离获取下一个waypoint
+
+- get_terrain_altitude_landing() float
+
+  返回降落点的地形高度估计，在降落的时候：根据设定点的高度或者有可能的话使用地形估计
+
+- get_terrain_altitude_takeoff() float
+
+  返回起飞地形或者返回高度在地形估计不可用的情况下
+
+- in_takeoff_situation() bool
+
+  检查是否在合法的起飞地点
+
+- do_takeoff_help(hold_altitude, pitch_limit_min_mininum) 
+
+  定高模式下的起飞帮助
+
+- update_desired_altitude(dt) bool
+
+  根据俯仰输入更新期望高度,参数为Time step，单位时间
+
+- control_position(global_pos, ground_speed, pos_sp_triplet) bool
+
+  控制位置
+
+- get_tecs_pitch() float
+
+- get_tecs_thrust() float
+
+- get_demanded_airspeed() float
+
+  获取需要的空速大小
+
+- calculate_target_airspeed(airspeed_demand) float
+
+- calualte_gndspeed_undershoot(current_pos, ground\_speed_2d, pos_sp_triplet) void
+
+- task_main_trampoline()
+
+- task_main() void
+
+- reset_takeoff_state() void
+
+- reset_landing_state() void
+
+- tecs_update_pitch_trottle() void
+
+  一个调用实现TECS的包装器函数(mTECS是只通过参数启用)
+
+##QgroundControl安装
+
+下载网站：
+
+https://docs.qgroundcontrol.com/en/getting_started/download_and_install.html
+
+依赖包补丁（有些库没有，需要自己安装）：
+
+``sudo apt-get install espeak libespeak-dev libudev-dev libsd2-2.0-0``
+
+然后按教程运行：
+
+```shell
+tar jxf QGroundControl.tar.bz2
+cd qgroundcontrol
+./qgroundcontrol-start.sh
+```
 
