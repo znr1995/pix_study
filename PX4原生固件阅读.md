@@ -505,6 +505,18 @@ PARAM_DEFINE_INT32(MAV_SYS_ID,1)
 
 - calculate_target_airspeed(airspeed_demand) float
 
+  计算目标空速，没看懂想干嘛
+
+  实现：
+
+  ​	当前空速根据全局变量\_airspeed_valid是否合法，合法取当前控制状态的空速，否则取中值。
+
+  ​	目标空速= airspeed_demand+\_groundsped_undershoot(期望速度+地速)，再对目标空速进行限制，使其在最大最小之间。
+
+  ​	\_airspeed_error这个全局变量是目标速度和当前空速之差，应该是用来调整速度的。
+
+  ​	返回目标速度
+
 - calualte_gndspeed_undershoot(current_pos, ground\_speed_2d, pos_sp_triplet) void
 
 - task_main_trampoline()
