@@ -28,6 +28,90 @@ Ardupilot是APM的固件
 
 
 
+## 固件编译&环境搭建
+
+````shell
+预环境处理：（把用户添加到用户组　"dialout":重新登录一回使其生效）
+sudo usermod -a -G dialout $USER
+````
+
+
+
+````shell
+依赖环境安装：
+sudo add-apt-repository ppa:george-edison55/cmake-3.x -y
+sudo apt-get update
+# 必备软件
+sudo apt-get install python-argparse git-core wget zip \
+    python-empy qtcreator cmake build-essential genromfs -y
+# 仿真工具
+sudo add-apt-repository ppa:openjdk-r/ppa
+sudo apt-get update
+sudo apt-get install openjdk-8-jre
+sudo apt-get install ant protobuf-compiler libeigen3-dev libopencv-dev openjdk-8-jdk openjdk-8-jre clang-3.5 lldb-3.5 -y
+
+#ubuntu自带端口管理会影响这个
+sudo apt-get remove modemmanager
+
+#依赖包
+sudo apt-get install python-serial openocd \
+    flex bison libncurses5-dev autoconf texinfo build-essential \
+    libftdi-dev libtool zlib1g-dev \
+    python-empy  -y
+
+#安装交叉编译链
+sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi binutils-arm-none-eabi gcc-arm-embedded
+sudo add-apt-repository --remove ppa:team-gcc-arm-embedded/ppa
+
+````
+
+如果交叉编译链没有安装好，用如下的办法。
+
+````bash
+编译链安装：
+   https://launchpad.net/gcc-arm-embedded/+download 
+然后执行如下命令：重启后交叉编译链接
+pushd .
+# => 卸载新版的gcc-arm-none-eabi
+sudo apt-get remove gcc-arm-none-eabi
+# => 安装下载好的gcc-arm-none-eabi
+tar -jxf gcc-arm-none-eabi-4_9-2015q3-20150921-linux.tar.bz2
+sudo mv gcc-arm-none-eabi-4_9-2015q3 /opt
+exportline="export PATH=/opt/gcc-arm-none-eabi-4_9-2015q3/bin:\$PATH"
+if grep -Fxq "$exportline" ~/.profile; then echo nothing to do ; else echo $exportline >> ~/.profile; fi
+# => 使路径生效
+. ~/.profile
+popd
+````
+
+接下来进行下载源码编译：
+
+````shell
+git clone https://github.com/PX4/Firmware.git
+#源码里部分子模块不存在，需要更新
+cd Firmware
+git submodule update --init --recursive
+make px4fmu-v2_default
+````
+
+一般来说，只要有交叉编译链，就可以一次编译通过
+
+````shell
+# Gazebo simulator
+sudo apt-get install protobuf-compiler libeigen3-dev libopencv-dev -y
+sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
+## Setup keys
+wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+## Update the debian database:
+sudo apt-get update -y
+## Install Gazebo8
+sudo apt-get install gazebo8 -y
+## For developers (who work on top of Gazebo) one extra package
+sudo apt-get install libgazebo8-dev
+````
+
+
+
 ### PX4逻辑控制流程
 
 1. commander/navigator 产生期望位置
@@ -346,6 +430,11 @@ usage负责输出
 
 #### class FixedwingPositionControl
 
+- FixedwingPositionControl:
+
+  使用param_find()函数定位所有的参数,赋初值
+
+
 - start() int static  public
 
   开始控制
@@ -356,7 +445,7 @@ usage负责输出
 
 - parameters_update() int  *private*
 
-  更新所有的类内参数
+  更新所有的类内参数，使用param_get()方法
 
 - control_update() void
 
@@ -364,23 +453,29 @@ usage负责输出
 
 - vehicle_control_mode_poll()
 
-  飞行器模式更新
+  飞行器模式更新，通过orb_check来检测是否更新
 
 - vehicle_status_poll()
 
-  飞行器状态更新
+  飞行器状态更新，通过orb_check
 
 - vehicle_manual_control_setpoint_poll()
 
-  飞行器手动控制设定点更新
+  飞行器手动控制设定点更新，同上
 
 - control_state_poll()
 
   控制状态更新
 
+  如果空速1s内没有更新，认定是非法的。
+
+  将四元组的控制信息转化为欧拉角度
+
+  更新TECS的状态
+
 - vehicle_sensor_combined_poll()
 
-  飞行器加速度状态更新
+  飞行器传感器状态更新
 
 - vehicle_setpoint_poll()
 
@@ -426,13 +521,37 @@ usage负责输出
 
   获取需要的空速大小
 
+  实现算法如下：
+
+  ​	判断输入油门的大小，设定可变化速度为当前速度距最大/最小速度的差，airspeed_trim字面上是修剪的空速速度（即当前速度）
+
+  ​		如果油门输入小于0.5，输出速度=最小速度+可变化速度×油门输入值×2；（如果油门输入值0.5，则速度不变化，在输入值小于0.5的情况下，油门输入×2 < 1）
+
+  ​		如果油门大于0.5，输出速度 = 当前速度 + 可变化速度 × （油门输入值-0.5）*2（减去0.5的基础油门）
+
 - calculate_target_airspeed(airspeed_demand) float
+
+  计算目标空速，没看懂想干嘛
+
+  实现：
+
+  ​	当前空速根据全局变量\_airspeed_valid是否合法，合法取当前控制状态的空速，否则取中值。
+
+  ​	目标空速= airspeed_demand+\_groundsped_undershoot(期望速度+地速)，再对目标空速进行限制，使其在最大最小之间。
+
+  ​	\_airspeed_error这个全局变量是目标速度和当前空速之差，应该是用来调整速度的。
+
+  ​	返回目标速度
 
 - calualte_gndspeed_undershoot(current_pos, ground\_speed_2d, pos_sp_triplet) void
 
 - task_main_trampoline()
 
+  构建FixedwingPositionControl类，赋给l1_control命名空间的g\_control指针，开始运行``task_main()``函数，然后释放。
+
 - task_main() void
+
+  ​
 
 - reset_takeoff_state() void
 
@@ -450,7 +569,7 @@ https://docs.qgroundcontrol.com/en/getting_started/download_and_install.html
 
 依赖包补丁（有些库没有，需要自己安装）：
 
-``sudo apt-get install espeak libespeak-dev libudev-dev libsd2-2.0-0``
+``sudo apt-get install espeak libespeak-dev libudev-dev libsdl2-2.0-0``
 
 然后按教程运行：
 

@@ -747,7 +747,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_heightrate_ff(_parameters.heightrate_ff);
 	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
-	/* sanity check parameters */
+	/* sanity check parameters，合法性判断 */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
 	    _parameters.airspeed_max < 5.0f ||
 	    _parameters.airspeed_min > 100.0f ||
@@ -757,17 +757,17 @@ FixedwingPositionControl::parameters_update()
 		return 1;
 	}
 
-	/* Update the landing slope */
+	/* Update the landing slope，更新降落斜率 */
 	landingslope.update(math::radians(_parameters.land_slope_angle), _parameters.land_flare_alt_relative,
 			    _parameters.land_thrust_lim_alt_relative, _parameters.land_H1_virt);
 
-	/* Update and publish the navigation capabilities */
+	/* Update and publish the navigation capabilities，更新发布导航的能力 */
 	_nav_capabilities.landing_slope_angle_rad = landingslope.landing_slope_angle_rad();
 	_nav_capabilities.landing_horizontal_slope_displacement = landingslope.horizontal_slope_displacement();
 	_nav_capabilities.landing_flare_length = landingslope.flare_length();
 	navigation_capabilities_publish();
 
-	/* Update Launch Detector Parameters */
+	/* Update Launch Detector Parameters，更新发射检测 */
 	launchDetector.updateParams();
 
 	/* Update the mTecs */
@@ -906,13 +906,18 @@ FixedwingPositionControl::get_demanded_airspeed()
 {
 	float altctrl_airspeed = 0;
 	// neutral throttle corresponds to trim airspeed
-	if (_manual.z < 0.5f) {
+	// 设定空速对应油门中值
+	if (_manual.z < 0.5f) { 
+		// airspeed_trim 应该是当前速度，在最小最大速度之间徘徊
 		// lower half of throttle is min to trim airspeed
+		// 如果油门输入<0.5，输出空速应该是 最小速度+(可缩减速度)*(2×输入值)  
+		// 可缩减速度为当前速度到最小速度的差，以0.5*2为1，中值，不会变化
 		altctrl_airspeed = _parameters.airspeed_min +
 							(_parameters.airspeed_trim - _parameters.airspeed_min) *
 							_manual.z * 2;
 	} else {
 		// upper half of throttle is trim to max airspeed
+		// 同上， 在当前速度+油门距中值的差×可增加速度
 		altctrl_airspeed = _parameters.airspeed_trim +
 							(_parameters.airspeed_max - _parameters.airspeed_trim) *
 							(_manual.z * 2 - 1);
@@ -936,13 +941,14 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
 	float target_airspeed = airspeed_demand;
 
 	/* add minimum ground speed undershoot (only non-zero in presence of sufficient wind) */
+	/* 在目标空速加上最小低速，只有在有强风时候不为0 */
 	target_airspeed += _groundspeed_undershoot;
 
 	if (0/* throttle nudging enabled */) {
 		//target_airspeed += nudge term.
 	}
 
-	/* sanity check: limit to range */
+	/* sanity check: limit to range 将目标空速限制在最小，最大之间 */
 	target_airspeed = math::constrain(target_airspeed, _parameters.airspeed_min, _parameters.airspeed_max);
 
 	/* plain airspeed error */
