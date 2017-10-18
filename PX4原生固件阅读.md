@@ -62,7 +62,6 @@ sudo apt-get install python-serial openocd \
 #安装交叉编译链
 sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi binutils-arm-none-eabi gcc-arm-embedded
 sudo add-apt-repository --remove ppa:team-gcc-arm-embedded/ppa
-
 ````
 
 如果交叉编译链没有安装好，用如下的办法。
@@ -487,11 +486,19 @@ usage负责输出
 
 - get_waypoint_heading_distance(heading, distance, wp_prev, wp_nest) void
 
-  基于方向和当前的距离获取下一个waypoint
+  基于方向和当前的距离获取下一个waypoint，
+
+  如果是flag_init，根据角度和距离获取前后航点
+
+  否则，根据前一帧的前后航点说确定的直线，根据预先定义的距离，获取新的前后航点。
 
 - get_terrain_altitude_landing() float
 
   返回降落点的地形高度估计，在降落的时候：根据设定点的高度或者有可能的话使用地形估计
+
+  如果地形评估不合法，直接使用设定点的高度
+
+  如果使用地形评估，并切换到地形评估，一直使用到降落为止
 
 - get_terrain_altitude_takeoff() float
 
@@ -501,13 +508,25 @@ usage负责输出
 
   检查是否在合法的起飞地点
 
-- do_takeoff_help(hold_altitude, pitch_limit_min_mininum) 
+  实现：
+
+  ​	判断油门输入的时效性，油门输入是否到门限，高度是否符合起飞的条件
+
+- do_takeoff_help(hold_altitude, pitch_limit_min) 
 
   定高模式下的起飞帮助
+
+  如果in_takeoff_situation()，给hold_alt，pitch_limit_min赋值，否则只给pitch_limit_min
 
 - update_desired_altitude(dt) bool
 
   根据俯仰输入更新期望高度,参数为Time step，单位时间
+
+  实现：
+
+  ​	0.06 ~ -0.06 视为0， 其余1 ~ 0.06 | -0.06 ~  -1 部分按比例，更新高度 = 原高度 + 最大变化速率*dt * pitch （俯仰指数）
+
+  ​	如果是垂直起降飞机，在旋翼状态/转化状态，高度是当前高度。
 
 - control_position(global_pos, ground_speed, pos_sp_triplet) bool
 
@@ -515,7 +534,11 @@ usage负责输出
 
 - get_tecs_pitch() float
 
+  如果mTecs可行，返回getPitchSetpoint()否则返回_tecs.get_pitch_demand()
+
 - get_tecs_thrust() float
+
+  同上
 
 - get_demanded_airspeed() float
 
@@ -545,13 +568,27 @@ usage负责输出
 
 - calualte_gndspeed_undershoot(current_pos, ground\_speed_2d, pos_sp_triplet) void
 
+  计算对地下降速度，
+
+  ​	根据distance和delta_altitude计算期望的速度，与当前速度之差就是应该对地下降的速度
+
 - task_main_trampoline()
 
   构建FixedwingPositionControl类，赋给l1_control命名空间的g\_control指针，开始运行``task_main()``函数，然后释放。
 
 - task_main() void
 
-  ​
+  先订阅需要的信息，设置更新速率等。
+
+  fds[2]，fds[0]负责检查参数更新，fds[1]负责位置更新
+
+  while
+
+  ​	px4_poll检查是否有更新，更新control_mode,status
+
+  ​	如果参数更新，获取更新参数
+
+  ​	如果位置更新，control_statue,setpoint,sensor_combined,manual_control_setpoint更新，运行control_position()函数，如果控制成功，通过uorb机制输出控制结果信息，最后如果导航信息很久没有更新，输出导航信息没看懂
 
 - reset_takeoff_state() void
 

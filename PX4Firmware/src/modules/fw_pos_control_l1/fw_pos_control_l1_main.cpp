@@ -963,16 +963,17 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &c
 {
 
 	if (pos_sp_triplet.current.valid && !(pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
-
+		//当前位置的合法 && 飞行器的状态不是闲逛
 		/* rotate ground speed vector with current attitude */
 		math::Vector<2> yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
 		yaw_vector.normalize();
+		//当前的速度
 		float ground_speed_body = yaw_vector * ground_speed_2d;
 
 		/* The minimum desired ground speed is the minimum airspeed projected on to the ground using the altitude and horizontal difference between the waypoints if available*/
 		float distance = 0.0f;
 		float delta_altitude = 0.0f;
-
+		//计算水平投影下的距离和高度差
 		if (pos_sp_triplet.previous.valid) {
 			distance = get_distance_to_next_waypoint(pos_sp_triplet.previous.lat, pos_sp_triplet.previous.lon,
 					pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
@@ -992,6 +993,8 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &c
 		 * by the plane. Consequently it is zero if airspeed is >= min ground speed
 		 * and positive if airspeed < min ground speed.
 		 *
+		 * 对地下冲速度（固定翼速度不够，升力<重力 产生的飞行高度下降速度） 是飞机没有到达一定地速的结果。因此，当空速大于最小地速时候，对地下冲速度为0，否则为正当小于最小地速时候。
+		 * 
 		 * This error value ensures that a plane (as long as its throttle capability is
 		 * not exceeded) travels towards a waypoint (and is not pushed more and more away
 		 * by wind). Not countering this would lead to a fly-away.
@@ -1025,6 +1028,8 @@ void FixedwingPositionControl::get_waypoint_heading_distance(float heading, floa
 
 	if (flag_init) {
 		// on init set previous waypoint HDG_HOLD_SET_BACK_DIST meters behind us
+		// 采用初始化的距离就是 HDG_HOLD_SET_BACK_DIST 的距离
+		// 根据给定一个点 以及距离角度得到另外一个点
 		waypoint_from_heading_and_distance(_global_pos.lat, _global_pos.lon, heading + 180.0f * M_DEG_TO_RAD_F ,
 						   HDG_HOLD_SET_BACK_DIST,
 						   &temp_prev.lat, &temp_prev.lon);
@@ -1032,6 +1037,7 @@ void FixedwingPositionControl::get_waypoint_heading_distance(float heading, floa
 		// set next waypoint HDG_HOLD_DIST_NEXT meters in front of us
 		waypoint_from_heading_and_distance(_global_pos.lat, _global_pos.lon, heading, HDG_HOLD_DIST_NEXT,
 						   &temp_next.lat, &temp_next.lon);
+		// 设置前一个航点和后一个航点
 		waypoint_prev = temp_prev;
 		waypoint_next = temp_next;
 		waypoint_next.valid = true;
@@ -1046,6 +1052,7 @@ void FixedwingPositionControl::get_waypoint_heading_distance(float heading, floa
 		create_waypoint_from_line_and_dist(waypoint_next.lat, waypoint_next.lon, waypoint_prev.lat, waypoint_prev.lon,
 						   HDG_HOLD_REACHED_DIST + HDG_HOLD_SET_BACK_DIST,
 						   &temp_prev.lat, &temp_prev.lon);
+		//在next和prev航点中间获取当前航点
 	}
 
 	waypoint_next.valid = true;
@@ -1067,6 +1074,7 @@ float FixedwingPositionControl::get_terrain_altitude_landing(float land_setpoint
 
 	/* Decide if the terrain estimation can be used, once we switched to using the terrain we stick with it
 	 * for the whole landing */
+	// 决定是否使用地形评估，一旦切换到这里，会一直坚持使用直到降落
 	if (_parameters.land_use_terrain_estimate && global_pos.terrain_alt_valid) {
 		if (!land_useterrain) {
 			mavlink_log_info(&_mavlink_log_pub, "Landing, using terrain estimate");
@@ -1102,19 +1110,23 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 	 * The correct scaling of the complete range needs
 	 * to account for the missing part of the slope
 	 * due to the deadband
+	 * 所有范围的缩放需要考虑因为死区引起斜率缺失范围
 	 */
 	const float factor = 1.0f - deadBand;
 
 	/* Climbout mode sets maximum throttle and pitch up */
+	/* 急速爬升模式需要设置最大油门和俯仰 */
 	bool climbout_mode = false;
 
 	/*
 	 * Reset the hold altitude to the current altitude if the uncertainty
-	 * changes significantly.
+	 * changes significantly.  当发生巨大变化时（高度），修改定高到当前高度。
 	 * This is to guard against uncommanded altitude changes
 	 * when the altitude certainty increases or decreases.
+	 * 这是为了保护飞行器出现无命令的高度变化当高度增高/下降时候
+	 * 就是防止飞行器出现剧烈抖动，比如突然降了1m，不能突然升1m回到原来的高度，而是依然保持平稳飞行
 	 */
-
+	/* EPV是什么鬼 */
 	if (fabsf(_althold_epv - _global_pos.epv) > ALTHOLD_EPV_RESET_THRESH) {
 		_hold_alt = _global_pos.alt;
 		_althold_epv = _global_pos.epv;
@@ -1126,7 +1138,8 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 	 * the X axis in NED frame, which is pitching down
 	 */
 	if (_manual.x > deadBand) {
-		/* pitching down */
+		/* pitching down 沉头  俯仰摇杆的输入正负与飞机仰头与否是相反的， 下拉仰头，上推沉头 */
+		/* 0.06 ~ -0.06 视为输入0，这就是死区的意义，剩余的 0.06~1 重新计算比例  */
 		float pitch = -(_manual.x - deadBand) / factor;
 		_hold_alt += (_parameters.max_sink_rate * dt) * pitch;
 		_was_in_deadband = false;
@@ -1194,6 +1207,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	_control_position_last_called = hrt_absolute_time();
 
 	/* only run position controller in fixed-wing mode and during transitions for VTOL */
+	/* 只在固定翼模式和VTOL的变形模式下运行position controller */
 	if (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 		return false;
@@ -1201,15 +1215,17 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	bool setpoint = true;
 
-	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
-	_att_sp.apply_flaps = false;		// by default we don't use flaps
-	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
+	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder 默认不使用方向舵控制方向
+	_att_sp.apply_flaps = false;		// by default we don't use flaps 默认使用襟翼
+	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements  基于当前的测量来计算实际值
 
 	/* filter speed and altitude for controller */
 	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
 	math::Vector<3> accel_earth = _R_nb * accel_body;
 
 	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
+	/* 通知 TECS更新状态，但是当无法控制飞行器时候告知它 */
+	/* in_air_alt_control 在auto|velocity|altitude模式下 且 没有降落 是可以被控制的*/
 	bool in_air_alt_control = (!_vehicle_status.condition_landed &&
 				   (_control_mode.flag_control_auto_enabled ||
 				    _control_mode.flag_control_velocity_enabled ||
@@ -1409,7 +1425,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					mavlink_log_info(&_mavlink_log_pub, "#Landing, heading hold");
 				}
 
-//					warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
+			//	warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
 
 				_l1_control.navigate_heading(target_bearing, _yaw, ground_speed_2d);
 
@@ -1497,8 +1513,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			    land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 				/* land with minimal speed */
 
-//					/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
-//					_tecs.set_speed_weight(2.0f);
+				//	/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
+				//	_tecs.set_speed_weight(2.0f);
 
 				/* kill the throttle if param requests it */
 				throttle_max = _parameters.throttle_max;
@@ -2089,6 +2105,7 @@ FixedwingPositionControl::task_main()
 	px4_pollfd_struct_t fds[2];
 
 	/* Setup of loop */
+	/* fd[0]是参数更新 ， fd[1]是全局位置更新 */
 	fds[0].fd = _params_sub;
 	fds[0].events = POLLIN;
 	fds[1].fd = _global_pos_sub;
@@ -2129,6 +2146,7 @@ FixedwingPositionControl::task_main()
 		}
 
 		/* only run controller if position changed */
+		/* 运行位置控制当发生位置改变时 */
 		if (fds[1].revents & POLLIN) {
 			perf_begin(_loop_perf);
 
@@ -2143,7 +2161,7 @@ FixedwingPositionControl::task_main()
 			vehicle_sensor_combined_poll();
 			vehicle_manual_control_setpoint_poll();
 			// vehicle_baro_poll();
-
+			//ground_speed是ned3个方向的速度，pos是经纬度坐标
 			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
 			math::Vector<2> current_position((float)_global_pos.lat, (float)_global_pos.lon);
 
@@ -2155,6 +2173,7 @@ FixedwingPositionControl::task_main()
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* lazily publish the setpoint only once available */
+				/* 输出控制信息，利用uorb机制 */
 				if (_attitude_sp_pub != nullptr) {
 					/* publish the attitude setpoint */
 					orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
@@ -2165,6 +2184,7 @@ FixedwingPositionControl::task_main()
 				}
 
 				/* XXX check if radius makes sense here */
+				/*  检查半径是否有意义 */
 				float turn_distance = _l1_control.switch_distance(100.0f);
 
 				/* lazily publish navigation capabilities */
@@ -2232,6 +2252,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
+	//TECS不应该在着陆状态下或者VTOL旋翼状态下或者VTOL混合模式下（因为空速太小）
 	if (_vehicle_status.is_vtol) {
 		run_tecs &= !_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
 	}
@@ -2258,6 +2279,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	_is_tecs_running = run_tecs;
 	if (!run_tecs) {
 		// next time we run TECS we should reinitialize states
+		// 下次运行TECS需要重新初始化
 		_reinitialize_tecs = true;
 		return;
 	}
