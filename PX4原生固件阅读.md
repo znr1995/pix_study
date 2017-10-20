@@ -595,7 +595,7 @@ usage负责输出
 
   ​	返回目标速度
 
-- calualte_gndspeed_undershoot(current_pos, ground\_speed_2d, pos_sp_triplet) void
+- **calualte_gndspeed_undershoot(current_pos, ground\_speed_2d, pos_sp_triplet) void **
 
   计算对地下降速度，
 
