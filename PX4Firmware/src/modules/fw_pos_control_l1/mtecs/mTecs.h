@@ -77,18 +77,22 @@ public:
 
 	/*
 	 * Control in altitude setpoint and speed mode
+	 * 在高度设定和速度模式下的控制
 	 */
 	int updateAltitudeSpeed(float flightPathAngle, float altitude, float altitudeSp, float airspeed,
 				float airspeedSp, unsigned mode, LimitOverride limitOverride);
 
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and speed mode
+	 * 在设定飞行路径/斜率和速度模式下的控制
+	 * 
 	 */
 	int updateFlightPathAngleSpeed(float flightPathAngle, float flightPathAngleSp, float airspeed,
 				       float airspeedSp, unsigned mode, LimitOverride limitOverride);
 
 	/*
 	 * Control in flightPathAngle setpoint (flollow a slope etc.) and acceleration mode (base case)
+	 * 在设定飞行路径/斜率和加速度模式下的控制
 	 */
 	int updateFlightPathAngleAcceleration(float flightPathAngle, float flightPathAngleSp, float airspeedFiltered,
 					      float accelerationLongitudinalSp, unsigned mode, LimitOverride limitOverride);
@@ -103,7 +107,7 @@ public:
 	 */
 	void resetDerivatives(float airspeed);
 
-	/* Accessors */
+	/* Accessors 存取器 */
 	bool getEnabled() { return _mTecsEnabled.get() > 0; }
 	float getThrottleSetpoint() { return _throttleSp; }
 	float getPitchSetpoint() { return _pitchSp; }
@@ -125,32 +129,32 @@ protected:
 
 	/* control blocks */
 	BlockFFPILimitedCustom _controlTotalEnergy;		/**< FFPI controller for total energy control: output
-								  is throttle */
+								  is throttle FFPI控制器：负责总能量控制，输出油门 */
 	BlockFFPILimitedCustom _controlEnergyDistribution;	/**< FFPI controller for energy distribution control:
-								  output is pitch */
+								  output is pitch FFPI控制器：负责总能量分配，输出俯仰 */
 	BlockPDLimited	_controlAltitude;			/**< PD controller for altitude: output is the flight
-								  path angle setpoint */
+								  path angle setpoint PD控制器：负责高度，输出飞行路径角度设定 */
 	BlockPDLimited	_controlAirSpeed;			/**< PD controller for airspeed: output is acceleration
-								  setpoint */
+								  setpoint PD控制器，负责空速，输出加速度设定 */
 
 	/* Other calculation Blocks */
-	control::BlockLowPass2 _flightPathAngleLowpass;	/**< low pass filter for the flight path angle */
-	control::BlockLowPass2 _altitudeLowpass;	/**< low pass filter for altitude */
-	control::BlockLowPass2 _airspeedLowpass;		/**< low pass filter for airspeed */
-	control::BlockDerivative _airspeedDerivative;	/**< airspeed derivative calulation */
+	control::BlockLowPass2 _flightPathAngleLowpass;	/**< low pass filter for the flight path angle 用于飞行路径角度的低通滤波 */
+	control::BlockLowPass2 _altitudeLowpass;	/**< low pass filter for altitude 用于高度的低通滤波 */
+	control::BlockLowPass2 _airspeedLowpass;		/**< low pass filter for airspeed 用于空速的低通滤波 */
+	control::BlockDerivative _airspeedDerivative;	/**< airspeed derivative calulation 空速导数计算，加速度 */
 
 	/* Output setpoints */
-	float _throttleSp;				/**< Throttle Setpoint from 0 to 1 */
-	float _pitchSp;					/**< Pitch Setpoint from -pi to pi */
+	float _throttleSp;				/**< Throttle Setpoint from 0 to 1 输出油门设定 */
+	float _pitchSp;					/**< Pitch Setpoint from -pi to pi 俯仰设定  */
 
 	/* Output Limits in special modes */
-	BlockOutputLimiter _BlockOutputLimiterTakeoffThrottle;	    /**< Throttle Limits during takeoff */
-	BlockOutputLimiter _BlockOutputLimiterTakeoffPitch;	    /**< Pitch Limit during takeoff */
-	BlockOutputLimiter _BlockOutputLimiterUnderspeedThrottle;   /**< Throttle Limits when underspeed is detected */
-	BlockOutputLimiter _BlockOutputLimiterUnderspeedPitch;	    /**< Pitch Limit when underspeed is detected */
+	BlockOutputLimiter _BlockOutputLimiterTakeoffThrottle;	    /**< Throttle Limits during takeoff 起飞时的油门限制 */
+	BlockOutputLimiter _BlockOutputLimiterTakeoffPitch;	    /**< Pitch Limit during takeoff 起飞的俯仰限制 */
+	BlockOutputLimiter _BlockOutputLimiterUnderspeedThrottle;   /**< Throttle Limits when underspeed is detected 低速检测下的油门限制 */
+	BlockOutputLimiter _BlockOutputLimiterUnderspeedPitch;	    /**< Pitch Limit when underspeed is detected 低速检测下的俯仰限制 */
 	BlockOutputLimiter _BlockOutputLimiterLandThrottle;	    /**< Throttle Limits during landing (only in
-								      last phase)*/
-	BlockOutputLimiter _BlockOutputLimiterLandPitch;	    /**< Pitch Limit during landing */
+								      last phase) 降落时的油门限制 */
+	BlockOutputLimiter _BlockOutputLimiterLandPitch;	    /**< Pitch Limit during landing 降落时的俯仰限制 */
 
 	/* Time measurements */
 	hrt_abstime timestampLastIteration;	/**< Saves the result of hrt_absolute_time() of the last iteration */

@@ -50,6 +50,7 @@ namespace fwPosctrl
 
 /* A small class which provides helper functions to override control output limits which are usually set by
 * parameters in special cases
+* LimitOverride 是一个通过设置类的参数来控制输出限制的帮助类
 */
 class LimitOverride
 {

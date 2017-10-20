@@ -245,13 +245,13 @@ private:
 	bool _was_in_transition;
 
 	ECL_L1_Pos_Controller				_l1_control;
-	TECS						_tecs;
-	fwPosctrl::mTecs				_mTecs;
+	TECS						_tecs;  //通过控制油门和俯仰控制速度和高度
+	fwPosctrl::mTecs				_mTecs; //我觉得是通过PID控制飞行器的油门和俯仰
 	enum FW_POSCTRL_MODE {
-		FW_POSCTRL_MODE_AUTO,
-		FW_POSCTRL_MODE_POSITION,
-		FW_POSCTRL_MODE_ALTITUDE,
-		FW_POSCTRL_MODE_OTHER
+		FW_POSCTRL_MODE_AUTO, //自动
+		FW_POSCTRL_MODE_POSITION, //位置
+		FW_POSCTRL_MODE_ALTITUDE, //定高
+		FW_POSCTRL_MODE_OTHER   //其他
 	} _control_mode_current;			///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
 	struct {
@@ -1233,36 +1233,40 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 	/* update TECS filters */
 	if (!_mTecs.getEnabled()) {
+		//如果mTecs不可用，使用tecs
 		_tecs.update_state(_global_pos.alt, _ctrl_state.airspeed, _R_nb,
 				   accel_body, accel_earth, (_global_pos.timestamp > 0), in_air_alt_control);
 	}
 
 	math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
+	//计算对地下降速度
 	calculate_gndspeed_undershoot(current_position, ground_speed_2d, pos_sp_triplet);
 
-	/* define altitude error */
+
+	/* define altitude error 计算高度差 */
 	float altitude_error = pos_sp_triplet.current.alt - _global_pos.alt;
 
-	/* no throttle limit as default */
+	/* no throttle limit as default 默认没有油门上限设置 */
 	float throttle_max = 1.0f;
 
-	/* save time when airplane is in air */
+	/* save time when airplane is in air 如果在飞行中没有降落，记录时间 */
 	if (!_was_in_air && !_vehicle_status.condition_landed) {
 		_was_in_air = true;
 		_time_went_in_air = hrt_absolute_time();
 		_takeoff_ground_alt = _global_pos.alt;
 	}
 
-	/* reset flag when airplane landed */
+	/* reset flag when airplane landed 如果飞行器降落，重置是否在飞行的标志 */
 	if (_vehicle_status.condition_landed) {
 		_was_in_air = false;
 	}
 
-	if (_control_mode.flag_control_auto_enabled &&
+	if (_control_mode.flag_control_auto_enabled &&   //在自动模式下 && 当前位置合法
 	    pos_sp_triplet.current.valid) {
 		/* AUTONOMOUS FLIGHT */
 
 		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
+		/* 从其他模式切换过来时重置积分 */
 		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
 			/* reset integrators */
 			if (_mTecs.getEnabled()) {
@@ -1273,12 +1277,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				_tecs.reset_state();
 			}
 		}
-
+		//切换模式到自动上
 		_control_mode_current = FW_POSCTRL_MODE_AUTO;
 
-		/* reset hold altitude */
+		/* reset hold altitude  重置定高高度 */
 		_hold_alt = _global_pos.alt;
-		/* reset hold yaw */
+		/* reset hold yaw 重置航向 */
 		_hdg_hold_yaw = _yaw;
 
 		/* get circle mode */
@@ -1300,7 +1304,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		/* previous waypoint */
 		math::Vector<2> prev_wp;
-
+		//pos_sp_triplet是个三元组，前一个航点，当前航点，下一个航点
 		if (pos_sp_triplet.previous.valid) {
 			prev_wp(0) = (float)pos_sp_triplet.previous.lat;
 			prev_wp(1) = (float)pos_sp_triplet.previous.lon;
@@ -1315,18 +1319,19 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		}
 
+		//设置任务速度为需要修剪的速度
 		float mission_airspeed = _parameters.airspeed_trim;
-		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
+		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&  //如果当前的巡航速度符合范围&巡航速度》0.1，设置任务速度为巡航速度
 			_pos_sp_triplet.current.cruising_speed > 0.1f) {
 			mission_airspeed = _pos_sp_triplet.current.cruising_speed;
 		}
 
-		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) { //如果当前状态是怠机状态，
 			_att_sp.thrust = 0.0f;
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
 
-		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {  //wp是简单的导航航点
 			/* waypoint is a plain navigation waypoint */
 			_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
 			_att_sp.roll_body = _l1_control.nav_roll();
@@ -1337,9 +1342,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						   _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 						   false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
 
-		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) { //如果是一个徘徊模式
 
 			/* waypoint is a loiter waypoint */
+			//使用l1_control的导航模块的徘徊导航
 			_l1_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
 						    pos_sp_triplet.current.loiter_direction, ground_speed_2d);
 			_att_sp.roll_body = _l1_control.nav_roll();
@@ -1350,6 +1356,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			if (_nav_capabilities.abort_landing == true) {
 				// if we entered loiter due to an aborted landing, demand
 				// altitude setpoint well above landing waypoint
+				// 如果是因为中止着陆而进入徘徊模式，需要将高度设定高于降落模式
 				alt_sp = pos_sp_triplet.current.alt + 2.0f * _parameters.climbout_diff;
 
 			} else {
@@ -1358,7 +1365,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			}
 
 			if (in_takeoff_situation() ||
-			    ((_global_pos.alt < pos_sp_triplet.current.alt + _parameters.climbout_diff)
+			    ((_global_pos.alt < pos_sp_triplet.current.alt + _parameters.climbout_diff)  //如果是起飞条件/中止降落而且没有到达安全高度，限制滚转角度为15°
 			     && _nav_capabilities.abort_landing == true)) {
 				/* limit roll motion to ensure enough lift */
 				_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f),
@@ -1370,25 +1377,29 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 						   _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 						   false, math::radians(_parameters.pitch_limit_min), _global_pos.alt, ground_speed);
 
-		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {  //降落模式
 
 			// apply full flaps for landings. this flag will also trigger the use of flaperons
 			// if they have been enabled using the corresponding parameter
+			// 如果是降落模式，开启所有的襟翼，并作为一个使用襟翼的触发器
 			_att_sp.apply_flaps = true;
 
-			// save time at which we started landing
-			if (_time_started_landing == 0) {
+			// save time at which we started landing 记录开始着落是时间
+			if (_time_started_landing == 0) { 
 				_time_started_landing = hrt_absolute_time();
 			}
 
+			//上一个航点到当前航点的方向，当前位置到当前航点的方向
 			float bearing_lastwp_currwp = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
 			float bearing_airplane_currwp = get_bearing_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),
 							curr_wp(1));
 
 			/* Horizontal landing control */
 			/* switch to heading hold for the last meters, continue heading hold after */
+			//wp_distance 当前位置到当前航点的距离
 			float wp_distance = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 			/* calculate a waypoint distance value which is 0 when the aircraft is behind the waypoint */
+			/* 飞机在航点后面时距离航点距离为0 */
 			float wp_distance_save = wp_distance;
 
 			if (fabsf(bearing_airplane_currwp - bearing_lastwp_currwp) >= math::radians(90.0f)) {
@@ -1399,7 +1410,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			// some distance behind landing waypoint. This will make sure that the plane
 			// will always follow the desired flight path even if we get close or past
 			// the landing waypoint
-			math::Vector<2> curr_wp_shifted;
+			//创建虚拟航点在期望的路径上，但是一些距离落后于航点（没看懂这句）。这样可以确保飞机即使在关闭废除降落航点时也能在期望飞行路径上
+			math::Vector<2> curr_wp_shifted; //这应该就是虚拟航点
 			double lat;
 			double lon;
 			create_waypoint_from_line_and_dist(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon, pos_sp_triplet.previous.lat,
@@ -1407,15 +1419,15 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			curr_wp_shifted(0) = (float)lat;
 			curr_wp_shifted(1) = (float)lon;
 
-			// we want the plane to keep tracking the desired flight path until we start flaring
-			// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds
+			// we want the plane to keep tracking the desired flight path until we start flaring 我们期望飞行器能追踪期望路径直到我们启动信号
+			// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds 如果高度保持模式进入的太早，会增加穿过跑道的距离
 			//if (land_noreturn_vertical) {
 			if (wp_distance < _parameters.land_heading_hold_horizontal_distance || land_noreturn_horizontal) {
 
 				/* heading hold, along the line connecting this and the last waypoint */
-
-				if (!land_noreturn_horizontal) {//set target_bearing in first occurrence
-					if (pos_sp_triplet.previous.valid) {
+				/* 如果当前距离据航点距离小于着陆的指向距离|| 着陆进入无可返回的状态 ，可以认为是准备水平方向准备就绪或者为了进入安全距离的保护，锁住方向，沿着当前路径一直做*/
+				if (!land_noreturn_horizontal) {//set target_bearing in first occurrence，如果第一次进入这里，land_noreturn_horizontal是flase，设置target_bearing
+					if (pos_sp_triplet.previous.valid) { 
 						target_bearing = bearing_lastwp_currwp;
 
 					} else {
@@ -1433,7 +1445,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			} else {
 
-				/* normal navigation */
+				/* normal navigation ，只是普通导航，这里只提供航点，具体控制由l1_control操作 */
 				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
 			}
 
@@ -1446,8 +1458,9 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			}
 
 			/* Vertical landing control */
-			//xxx: using the tecs altitude controller for slope control for now
+			//xxx: using the tecs altitude controller for slope control for now 使用tecs姿态控制来降落
 			/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
+			// 如果近地，使用最小的俯仰，限制滚转来，而且高度误差为负，为了降落
 			// XXX this could make a great param
 
 			float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
@@ -1455,7 +1468,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			float airspeed_approach = _parameters.land_airspeed_scale * _parameters.airspeed_min;
 
 			/* Get an estimate of the terrain altitude if available, otherwise terrain_alt will be
-			 * equal to _pos_sp_triplet.current.alt */
+			 * equal to _pos_sp_triplet.current.alt 如果可以获取地形评估高度，否则地形评估为当前高度 */
 			float terrain_alt;
 
 			if (_parameters.land_use_terrain_estimate) {
@@ -1465,24 +1478,25 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					_t_alt_prev_valid = terrain_alt;
 					_time_last_t_alt = hrt_absolute_time();
 
-				} else if (_time_last_t_alt == 0) {
+				} else if (_time_last_t_alt == 0) { //地形评估的时间有问题，很久没更新
 					// we have started landing phase but don't have valid terrain
 					// wait for some time, maybe we will soon get a valid estimate
 					// until then just use the altitude of the landing waypoint
-					if (hrt_elapsed_time(&_time_started_landing) < 10 * 1000 * 1000) {
+					if (hrt_elapsed_time(&_time_started_landing) < 10 * 1000 * 1000) { //等待10s
 						terrain_alt = pos_sp_triplet.current.alt;
 
 					} else {
-						// still no valid terrain, abort landing
+						// still no valid terrain, abort landing 依然没有合法的地形评估值，中止着陆
 						terrain_alt = pos_sp_triplet.current.alt;
 						_nav_capabilities.abort_landing = true;
 					}
 
 				} else if ((!_global_pos.terrain_alt_valid && hrt_elapsed_time(&_time_last_t_alt) < T_ALT_TIMEOUT * 1000 * 1000)
-					   || land_noreturn_vertical) {
+					   || land_noreturn_vertical) { 
 					// use previous terrain estimate for some time and hope to recover
 					// if we are already flaring (land_noreturn_vertical) then just
 					//  go with the old estimate
+					// 实在nowayback，使用上次的合法值
 					terrain_alt = _t_alt_prev_valid;
 
 				} else {
@@ -1492,12 +1506,13 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				}
 
 			} else {
-				// no terrain estimation, just use landing waypoint altitude
+				// no terrain estimation, just use landing waypoint altitude 不使用地形评估，用cur waypoint的高度
 				terrain_alt = pos_sp_triplet.current.alt;
 			}
 
 
-			/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L */
+			/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L 
+				计算据上一个waypoint的距离和高度 */
 			float L_altitude_rel = pos_sp_triplet.previous.valid ?
 					       pos_sp_triplet.previous.alt - terrain_alt : 0.0f;
 
@@ -1505,24 +1520,25 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							      bearing_lastwp_currwp, bearing_airplane_currwp);
 
 			/* Check if we should start flaring with a vertical and a
-			 * horizontal limit (with some tolerance)
+			 * horizontal limit (with some tolerance) 
 			 * The horizontal limit is only applied when we are in front of the wp
+			 * 检查我们是否需要开启垂直和水平限制（允许一些误差），水平限制只有在waypoint前面时使用
 			 */
 			if (((_global_pos.alt < terrain_alt + landingslope.flare_relative_alt()) &&
 			     (wp_distance_save < landingslope.flare_length() + 5.0f)) ||
 			    land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 				/* land with minimal speed */
 
-				//	/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
+				//	/* force TECS to only control speed with pitch, altitude is only implicitely controlled now 强制TECS控制俯仰与高度*/
 				//	_tecs.set_speed_weight(2.0f);
 
 				/* kill the throttle if param requests it */
 				throttle_max = _parameters.throttle_max;
 
-				/* enable direct yaw control using rudder/wheel */
+				/* enable direct yaw control using rudder/wheel 允许使用垂尾 */
 				_att_sp.yaw_body = target_bearing;
 				_att_sp.fw_control_yaw = true;
-
+					//如果高度低于发动机限制高度|降落发动机限制开启
 				if (_global_pos.alt < terrain_alt + landingslope.motor_lim_relative_alt() || land_motor_lim) {
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
 
@@ -1790,7 +1806,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_reset_integral = true;
 		}
 
-	} else if (_control_mode.flag_control_velocity_enabled &&
+	} else if (_control_mode.flag_control_velocity_enabled &&   //在快速模式下 && 高度控制模式开启
 		   _control_mode.flag_control_altitude_enabled) {
 		/* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed,
 		   heading is set to a distant waypoint */
@@ -1910,7 +1926,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_yaw_lock_engaged = false;
 		}
 
-	} else if (_control_mode.flag_control_altitude_enabled) {
+	} else if (_control_mode.flag_control_altitude_enabled) { // 只开启高度控制模式
 		/* ALTITUDE CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed */
 
 		if (_control_mode_current != FW_POSCTRL_MODE_POSITION && _control_mode_current != FW_POSCTRL_MODE_ALTITUDE) {
@@ -1965,7 +1981,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					   ground_speed,
 					   tecs_status_s::TECS_MODE_NORMAL);
 
-	} else {
+	} else {  //其他情况
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 
 		/** MANUAL FLIGHT **/

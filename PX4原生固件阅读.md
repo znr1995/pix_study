@@ -427,6 +427,35 @@ usage负责输出
 
   将值重新赋值，并且重新调用calcuateSlopeValues()
 
+#### class lib/extern_lgpl/tecs 
+
+这个类负责控制俯仰和油门来控制速度和高度，在后面会用到，不做深入讲究，只是为了简绍这个类的作用
+
+````c++
+/*
+ *  Written by Paul Riseborough 2013 to provide:
+ *  - Combined control of speed and height using throttle to control
+ *    total energy and pitch angle to control exchange of energy between
+ *    potential and kinetic.
+ * 	  通过控制油门来控制能量，控制俯仰控制势能，使得速度高度结合控制，在势能和运动结合
+ *    Selectable speed or height priority modes when calculating pitch angle
+ * 	  当计算俯仰角度时优先选择速度/高度模式
+ *  - Fallback mode when no airspeed measurement is available that
+ *    sets throttle based on height rate demand and switches pitch angle control to
+ *    height priority
+ *    当空速测量不管用时，切换俯仰角度优先控制到高度优先控制，并设置油门基于高度速率需求
+ *  - Underspeed protection that demands maximum throttle switches pitch angle control
+ *    to speed priority mode
+ * 	  需求最大油门的低速保护下，切换俯仰控制优先到速度优先模式
+ *  - Relative ease of tuning through use of intuitive time constant, trim rate and damping parameters and the use
+ *    of easy to measure aircraft performance data
+ *    通过使用直观的时间常数，微调速率和阻尼参数以及使用易于测量飞机性能数据的相对易于调谐
+ *   
+ */
+````
+
+
+
 #### class FixedwingPositionControl
 
 - FixedwingPositionControl:
