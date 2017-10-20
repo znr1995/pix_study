@@ -1552,7 +1552,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				float flare_curve_alt_rel = landingslope.getFlareCurveRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp,
 							    bearing_airplane_currwp);
 
-				/* avoid climbout */
+				/* avoid climbout 如果当前的垂直相对高度》上一个垂直相对高度 & no way back  认为在地上停留 */
 				if ((flare_curve_alt_rel_last < flare_curve_alt_rel && land_noreturn_vertical) || land_stayonground) {
 					flare_curve_alt_rel = 0.0f; // stay on ground
 					land_stayonground = true;
