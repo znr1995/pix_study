@@ -1557,7 +1557,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					flare_curve_alt_rel = 0.0f; // stay on ground
 					land_stayonground = true;
 				}
-
+				//使用tecs更新油门和俯仰
 				tecs_update_pitch_throttle(terrain_alt + flare_curve_alt_rel,
 							   calculate_target_airspeed(airspeed_land), eas2tas,
 							   math::radians(_parameters.land_flare_pitch_min_deg),
@@ -1569,7 +1569,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							   land_motor_lim ? tecs_status_s::TECS_MODE_LAND_THROTTLELIM : tecs_status_s::TECS_MODE_LAND);
 
 				if (!land_noreturn_vertical) {
-					// just started with the flaring phase
+					// just started with the flaring phase，这个没看懂？，速度/高度消耗阶段？
 					_att_sp.pitch_body = 0.0f;
 					height_flare = _global_pos.alt - terrain_alt;
 					mavlink_log_info(&_mavlink_log_pub, "#Landing, flaring");
@@ -1589,14 +1589,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			} else {
 
-				/* intersect glide slope:
+				/* intersect glide slope: 交叉滑翔曲线，设定的曲线与滑翔曲线的交点
 				 * minimize speed to approach speed
 				 * if current position is higher than the slope follow the glide slope (sink to the
-				 * glide slope)
+				 * glide slope)如果当前位置比设定的曲线高/低，都按照滑翔曲线走
 				 * also if the system captures the slope it should stay
-				 * on the slope (bool land_onslope)
+				 * on the slope (bool land_onslope) 如果一直按照设定路线走，就不需要变化
 				 * if current position is below the slope continue at previous wp altitude
-				 * until the intersection with slope
+				 * until the intersection with slope 如果当前位置低于曲线继续按照上一个航点的高度保持高度，直到到交叉点
 				 * */
 				float altitude_desired_rel;
 
