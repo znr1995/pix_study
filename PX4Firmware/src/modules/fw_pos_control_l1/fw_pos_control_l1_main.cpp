@@ -1528,7 +1528,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			     (wp_distance_save < landingslope.flare_length() + 5.0f)) ||
 			    land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 				/* land with minimal speed */
-
+				//这里可以带油门降落，因为高度比预计高度低
 				//	/* force TECS to only control speed with pitch, altitude is only implicitely controlled now 强制TECS控制俯仰与高度*/
 				//	_tecs.set_speed_weight(2.0f);
 
@@ -1588,7 +1588,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				flare_curve_alt_rel_last = flare_curve_alt_rel;
 
 			} else {
-
+				//这里通过滑翔曲线来使高度过高的点下降
 				/* intersect glide slope: 交叉滑翔曲线，设定的曲线与滑翔曲线的交点
 				 * minimize speed to approach speed
 				 * if current position is higher than the slope follow the glide slope (sink to the
@@ -1628,16 +1628,17 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 							   ground_speed);
 			}
 
-		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-
+		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) { //起飞模式
+			//runway_takeoff的起飞模块的具体控制，猜的
 			if (_runway_takeoff.runwayTakeoffEnabled()) {
-				if (!_runway_takeoff.isInitialized()) {
+				if (!_runway_takeoff.isInitialized()) { //没有被初始化
 					math::Quaternion q(&_ctrl_state.q[0]);
 					math::Vector<3> euler = q.to_euler();
-					_runway_takeoff.init(euler(2), _global_pos.lat, _global_pos.lon);
+					_runway_takeoff.init(euler(2), _global_pos.lat, _global_pos.lon); //init(yaw,lat,lon)
 
 					/* need this already before takeoff is detected
-					 * doesn't matter if it gets reset when takeoff is detected eventually */
+					 * doesn't matter if it gets reset when takeoff is detected eventually 
+					 * 在起飞检查前需要准备好，并不怕在最后起飞检测时候这个模块重置(runway_takeoff) */
 					_takeoff_ground_alt = _global_pos.alt;
 
 					mavlink_log_info(&_mavlink_log_pub, "#Takeoff on runway");
@@ -1696,7 +1697,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					(double)_att_sp.roll_body, (double)_att_sp.pitch_body);*/
 
 			} else {
-				/* Perform launch detection */
+				/* Perform launch detection 如果runway_takeoff模块不可用，使用起飞检测模块 */
 				if (launchDetector.launchDetectionEnabled() &&
 				    launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 					/* Inform user that launchdetection is running */
@@ -1714,7 +1715,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					launch_detection_state = launchDetector.getLaunchDetected();
 
 				} else	{
-					/* no takeoff detection --> fly */
+					/* no takeoff detection --> fly  起飞检测不可用，置状态为需要控制 */
 					launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
 				}
 
@@ -1727,18 +1728,21 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					_att_sp.yaw_body = _l1_control.nav_bearing();
 
 					/* Select throttle: only in LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS we want to use
-					 * full throttle, otherwise we use the preTakeOff Throttle */
+					 * full throttle, otherwise we use the preTakeOff Throttle
+					 * 选择油门：只有在LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS模式下，我们使用全油门，否则其他我们使用先前起飞的油门 */
 					float takeoff_throttle = launch_detection_state !=
 								 LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS ?
 								 launchDetector.getThrottlePreTakeoff() : _parameters.throttle_max;
 
 					/* select maximum pitch: the launchdetector may impose another limit for the pitch
-					 * depending on the state of the launch */
+					 * depending on the state of the launch 
+					 * 选择最大的俯仰角度：起飞检测模块可能会根据起飞状态给俯仰强加一个限制*/
 					float takeoff_pitch_max_deg = launchDetector.getPitchMax(_parameters.pitch_limit_max);
 					float takeoff_pitch_max_rad = math::radians(takeoff_pitch_max_deg);
 
 					/* apply minimum pitch and limit roll if target altitude is not within climbout_diff
-					 * meters */
+					 * meters
+					 * 使用最小的俯仰和最小的滚转如果目标高度不在爬升误差之内 */
 					if (_parameters.climbout_diff > 0.001f && altitude_error > _parameters.climbout_diff) {
 						/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
 						tecs_update_pitch_throttle(pos_sp_triplet.current.alt,
@@ -1777,7 +1781,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				} else {
 					/* Tell the attitude controller to stop integrating while we are waiting
-					 * for the launch */
+					 * for the launch
+					 * 没有检测到起飞，重置积分，等待起飞检测为true */
 					_att_sp.roll_reset_integral = true;
 					_att_sp.pitch_reset_integral = true;
 					_att_sp.yaw_reset_integral = true;
@@ -1802,16 +1807,18 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		}
 
 		if (was_circle_mode && !_l1_control.circle_mode()) {
-			/* just kicked out of loiter, reset roll integrals */
+			/* just kicked out of loiter, reset roll integrals 
+				如果不是循环模式，重置积分器 */
 			_att_sp.roll_reset_integral = true;
 		}
 
 	} else if (_control_mode.flag_control_velocity_enabled &&   //在快速模式下 && 高度控制模式开启
 		   _control_mode.flag_control_altitude_enabled) {
 		/* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed,
-		   heading is set to a distant waypoint */
+		   heading is set to a distant waypoint 
+		   俯仰设置高度，油门设置速度，航向设定航点 */
 
-		if (_control_mode_current != FW_POSCTRL_MODE_POSITION) {
+		if (_control_mode_current != FW_POSCTRL_MODE_POSITION) { //如果模式不是FW_POSCTRL_MODE_POSITION，需要初始化
 			/* Need to init because last loop iteration was in a different mode */
 			_hold_alt = _global_pos.alt;
 			_hdg_hold_yaw = _yaw;
@@ -1819,7 +1826,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_yaw_lock_engaged = false;
 		}
 
-		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
+		/* Reset integrators if switching to this mode from a other mode in which posctl was not active 
+		   从其他模式切换过来，重置积分器 */
 		if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
 			/* reset integrators */
 			if (_mTecs.getEnabled()) {
@@ -1840,6 +1848,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		/* if we assume that user is taking off then help by demanding altitude setpoint well above ground
 		* and set limit to pitch angle to prevent stearing into ground
+			我们假设用户起飞然后需要设定高度的帮助，设定高度高于地面并且设置最小的俯仰角度预防触地。
 		*/
 		float pitch_limit_min;
 		do_takeoff_help(&_hold_alt, &pitch_limit_min);
@@ -1869,7 +1878,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		/* heading control */
 
 		if (fabsf(_manual.y) < HDG_HOLD_MAN_INPUT_THRESH) {
-			/* heading / roll is zero, lock onto current heading */
+			/* heading / roll is zero, lock onto current heading 小于偏航门限的都认为0  */
 			if (fabsf(_ctrl_state.yaw_rate) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
 				// little yaw movement, lock to current heading
 				_yaw_lock_engaged = true;
@@ -1878,6 +1887,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 			/* user tries to do a takeoff in heading hold mode, reset the yaw setpoint on every iteration
 			  to make sure the plane does not start rolling
+			  用户试图在起飞在定航模式，重置偏航设定确保起飞不滚转
 			*/
 			if (in_takeoff_situation()) {
 				_hdg_hold_enabled = false;
@@ -2263,7 +2273,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 
 	_last_tecs_update = hrt_absolute_time();
 
-	// do not run TECS if we are not in air
+	// do not run TECS if we are not in air 只在滞空时候运行TECS
 	run_tecs &= !_vehicle_status.condition_landed;
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
@@ -2279,10 +2289,11 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		_asp_after_transition = _ctrl_state.airspeed;
 
 	// after transition we ramp up desired airspeed from the speed we had coming out of the transition
+	// 转换之后，从转化速度到期望速度
 	} else if (_was_in_transition) {
 		_asp_after_transition += dt * 2; // increase 2m/s
 
-		if (_asp_after_transition < v_sp && _ctrl_state.airspeed < v_sp) {
+		if (_asp_after_transition < v_sp && _ctrl_state.airspeed < v_sp) { //设置v_sp，如果速度大于v_sp时候，认为变形完成
 			v_sp = fmaxf(_asp_after_transition, _ctrl_state.airspeed);
 		}
 
@@ -2317,7 +2328,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		fwPosctrl::LimitOverride limitOverride;
 
 		if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
-			/* Force the slow downwards spiral */
+			/* Force the slow downwards spiral 强制缓慢螺旋下降 */
 			limitOverride.enablePitchMinOverride(-1.0f);
 			limitOverride.enablePitchMaxOverride(5.0f);
 
@@ -2336,18 +2347,20 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 			/* use pitch max set by MT param */
 			limitOverride.disablePitchMaxOverride();
 		}
-
+		//根据前面的条件，flightPathAngle和limitOverride更新速度和高度，使用mTecs
 		_mTecs.updateAltitudeSpeed(flightPathAngle, altitude, alt_sp, _ctrl_state.airspeed, v_sp, mode,
 					   limitOverride);
 
 	} else {
+		//这里使用tecs
+		//首先做错误处理判断
 		if (_vehicle_status.engine_failure || _vehicle_status.engine_failure_cmd) {
 			/* Force the slow downwards spiral */
 			pitch_min_rad = M_DEG_TO_RAD_F * -1.0f;
 			pitch_max_rad = M_DEG_TO_RAD_F * 5.0f;
 		}
 
-		/* No underspeed protection in landing mode */
+		/* No underspeed protection in landing mode 在着陆模式下没有低速保护 */
 		_tecs.set_detect_underspeed_enabled(!(mode == tecs_status_s::TECS_MODE_LAND
 						      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
 
@@ -2415,6 +2428,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		t.throttle_integ 	= s.throttle_integ;
 		t.pitch_integ 		= s.pitch_integ;
 
+		//从_tecs对象中获取的特征，赋给s,用uorb输出
 		if (_tecs_status_pub != nullptr) {
 			orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
 
