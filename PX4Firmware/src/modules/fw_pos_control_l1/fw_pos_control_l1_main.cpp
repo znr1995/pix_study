@@ -183,7 +183,7 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	float	_hold_alt;				/**< hold altitude for altitude mode */
+	float	_hold_alt;				/**< hold altitude for altitude mode 高度模式下的定高 */
 	float	_takeoff_ground_alt;				/**< ground altitude at which plane was launched */
 	float	_hdg_hold_yaw;				/**< hold heading for velocity mode */
 	bool	_hdg_hold_enabled;			/**< heading hold enabled */
@@ -1216,7 +1216,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	bool setpoint = true;
 
 	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder 默认不使用方向舵控制方向
-	_att_sp.apply_flaps = false;		// by default we don't use flaps 默认使用襟翼
+	_att_sp.apply_flaps = false;		// by default we don't use flaps 默不使用襟翼
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements  基于当前的测量来计算实际值
 
 	/* filter speed and altitude for controller */
@@ -2372,7 +2372,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
 			math::Matrix<3,3> R_offset;
 			R_offset.from_euler(0, M_PI_2_F, 0);
-			math::Matrix<3,3> R_fixed_wing = _R_nb * R_offset;
+			math::Matrix<3,3> R_fixed_wing = · * R_offset;
 			math::Vector<3> euler = R_fixed_wing.to_euler();
 			pitch_for_tecs = euler(1);
 		}

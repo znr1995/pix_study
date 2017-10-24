@@ -597,9 +597,9 @@ usage负责输出
 
 - **calualte_gndspeed_undershoot(current_pos, ground\_speed_2d, pos_sp_triplet) void **
 
-  计算对地下降速度，
+  计算对地下降速度\_groundspeed_undershoot，对地下冲速度（固定翼速度不够，升力<重力 产生的飞行高度下降速度） 是飞机没有到达一定地速的结果。因此，当空速大于最小地速时候，对地下冲速度为0，否则为正当小于最小地速时候。
 
-  ​	根据distance和delta_altitude计算期望的速度，与当前速度之差就是应该对地下降的速度
+  ​	根据distance和delta_altitude计算期望的速度，与当前速度之差就是应该对地下降的速度，
 
 - task_main_trampoline()
 
@@ -626,6 +626,65 @@ usage负责输出
 - tecs_update_pitch_trottle() void
 
   一个调用实现TECS的包装器函数(mTECS是只通过参数启用)
+
+类的实现流程：
+
+​	从fw_pos_control_l1_main函数开始执行，这个main方法有命令行参数，根据参数，输出是否fw_pos_control_l1这个模块的运行状态，实际运行调用l1\_control::g\_control指针所创建的对象,调用FixedwingPositionControl::start方法的px4\_task_spawn_cmd来初始化创建对象。再通过task_main_trampoline真正创建类的对象。
+
+​	FixedwingPositionControl::task_main()正式开始：
+
+- 订阅全局位置，三个一组的航点位置，控制状态，传感器状态，控制模式，飞行器状态，参数，手动输入等通过uORB订阅。设置更新速率
+
+- 设置px4_pollfd_struct_t fds[2]这个结构体，fds[0]作为\_params\_sub，fds[1]作为\_global_pos_sub的监视，开始循环。
+
+- 更新飞行器的控制模式，状态信息。如果参数更新了(fds[0]),调用paramters_update()更新所有的参数。
+
+- 如果位置发生变化(fds[1]),
+
+  调用perf_begin(\_loop_perf),将最新的位置更新出来。
+
+  更新控制状态信息，设定点信息，传感器的信息，手动控制的信息。
+
+  构造ground_speed(ned3个方向的速度),current_position(经纬坐标)，调用control_position(),所有的控制内容都在这个函数中实现
+
+  控制成功，通过uORB输出\_attitude_sp_pub,
+
+  调用perf_end(\_loop_perf)结束
+
+**control_position()的函数运行流程：**
+
+1. \_control_position_last_called记录上一次位置控制信息
+
+2. 判断是否是固定翼模式/VTOL的变形模式，否则return false
+
+3. 默认不适用方向舵，不使用襟翼,eas2tas（不明）,accel_body是飞行器的加速度，accel_earth是飞行器对地的加速度，得到这个参数用于tecs.update_state()
+
+4. in_air_alt_control是判断飞行器是否滞空的标识，飞行器的控制模式在auto|velocity|altitude下 & 飞行器没有降落(!\_vehicle_status.condition_landed),是可以控制的，同样，这个参数用于tecs.update_state()
+
+5. 如果mTecs不可用，就使用tecs.update_state()更新参数
+
+6. 计算下冲速度\_gndspeed_undershoot
+
+7. 计算高度差altitude_error，目标高度-当前高度
+
+8. 设置油门上限
+
+9. _was_in_air置为true，记录在空中的时间\_time_went_in_air和高度\_takeoff_ground_alt
+
+10. 如果飞行器有条件降落，\_was_in_air置为false
+
+11. 根据飞行模式控制
+
+    - 自动模式下当前航点合法 flag_control_auto_enabled & pos_sp_triplet.current.valid
+
+    1. 如果从其他模式切换过来，重置积分器。\_control_mode_current全局变量记录上一个模式，如果mTecs可用，重置mTecs,否则tecs.reset_state(),将当前模式置为FW_POSCTRL_MODE_AUTO
+    2. 更新定高高度为当前高度，定航航向为当前航向
+
+    -  在定速模式下高度控制模式 flag_control_velocity_enabled & flag_control_altitude_enabled
+    - 在高度控制模式下 flag_control_altitude_enabled
+    - 其他情况下
+
+12. copy thrust output for publication
 
 ##QgroundControl安装
 
