@@ -1260,7 +1260,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	if (_vehicle_status.condition_landed) {
 		_was_in_air = false;
 	}
-
+	//pos_sp_triplet是设定点，前一个，当前，下一个航点的结构体
 	if (_control_mode.flag_control_auto_enabled &&   //在自动模式下 && 当前位置合法
 	    pos_sp_triplet.current.valid) {
 		/* AUTONOMOUS FLIGHT */
@@ -1289,6 +1289,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		bool was_circle_mode = _l1_control.circle_mode();
 
 		/* restore speed weight, in case changed intermittently (e.g. in landing handling) */
+		/* 储存speed weight，防止速度值立马改变 */
 		_tecs.set_speed_weight(_parameters.speed_weight);
 
 		/* current waypoint (the one currently heading for) */
@@ -1437,7 +1438,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					mavlink_log_info(&_mavlink_log_pub, "#Landing, heading hold");
 				}
 
-			//	warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
+				//	warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
 
 				_l1_control.navigate_heading(target_bearing, _yaw, ground_speed_2d);
 

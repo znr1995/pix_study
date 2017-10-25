@@ -458,182 +458,181 @@ usage负责输出
 
 #### class FixedwingPositionControl
 
-- FixedwingPositionControl:
+#####FixedwingPositionControl:
 
-  使用param_find()函数定位所有的参数,赋初值
+使用param_find()函数定位所有的参数,赋初值
 
+#####start() int static  public
 
-- start() int static  public
+开始控制
 
-  开始控制
+#####task_running() bool
 
-- task_running() bool
+任务的状态
 
-  任务的状态
+#####parameters_update() int  *private*
 
-- parameters_update() int  *private*
+更新所有的类内参数，使用param_get()方法
 
-  更新所有的类内参数，使用param_get()方法
+#####control_update() void
 
-- control_update() void
+更新控制输出
 
-  更新控制输出
+#####vehicle_control_mode_poll()
 
-- vehicle_control_mode_poll()
+飞行器模式更新，通过orb_check来检测是否更新
 
-  飞行器模式更新，通过orb_check来检测是否更新
+#####vehicle_status_poll()
 
-- vehicle_status_poll()
+飞行器状态更新，通过orb_check
 
-  飞行器状态更新，通过orb_check
+#####vehicle_manual_control_setpoint_poll()
 
-- vehicle_manual_control_setpoint_poll()
+飞行器手动控制设定点更新，同上
 
-  飞行器手动控制设定点更新，同上
+#####control_state_poll()
 
-- control_state_poll()
+控制状态更新
 
-  控制状态更新
+如果空速1s内没有更新，认定是非法的。
 
-  如果空速1s内没有更新，认定是非法的。
+将四元组的控制信息转化为欧拉角度
 
-  将四元组的控制信息转化为欧拉角度
+更新TECS的状态
 
-  更新TECS的状态
+#####vehicle_sensor_combined_poll()
 
-- vehicle_sensor_combined_poll()
+飞行器传感器状态更新
 
-  飞行器传感器状态更新
+#####vehicle_setpoint_poll()
 
-- vehicle_setpoint_poll()
+设置点更新
 
-  设置点更新
+#####navigation_capabilities_publish()
 
-- navigation_capabilities_publish()
+导航能力输出
 
-  导航能力输出
+#####get_waypoint_heading_distance(heading, distance, wp_prev, wp_nest) void
 
-- get_waypoint_heading_distance(heading, distance, wp_prev, wp_nest) void
+基于方向和当前的距离获取下一个waypoint，
 
-  基于方向和当前的距离获取下一个waypoint，
+如果是flag_init，根据角度和距离获取前后航点
 
-  如果是flag_init，根据角度和距离获取前后航点
+否则，根据前一帧的前后航点说确定的直线，根据预先定义的距离，获取新的前后航点。
 
-  否则，根据前一帧的前后航点说确定的直线，根据预先定义的距离，获取新的前后航点。
+#####get_terrain_altitude_landing() float
 
-- get_terrain_altitude_landing() float
+返回降落点的地形高度估计，在降落的时候：根据设定点的高度或者有可能的话使用地形估计
 
-  返回降落点的地形高度估计，在降落的时候：根据设定点的高度或者有可能的话使用地形估计
+如果地形评估不合法，直接使用设定点的高度
 
-  如果地形评估不合法，直接使用设定点的高度
+如果使用地形评估，并切换到地形评估，一直使用到降落为止
 
-  如果使用地形评估，并切换到地形评估，一直使用到降落为止
+#####get_terrain_altitude_takeoff() float
 
-- get_terrain_altitude_takeoff() float
+返回起飞地形或者返回高度在地形估计不可用的情况下
 
-  返回起飞地形或者返回高度在地形估计不可用的情况下
+#####in_takeoff_situation() bool
 
-- in_takeoff_situation() bool
+检查是否在合法的起飞地点
 
-  检查是否在合法的起飞地点
+实现：
 
-  实现：
+​	判断油门输入的时效性，油门输入是否到门限，高度是否符合起飞的条件
 
-  ​	判断油门输入的时效性，油门输入是否到门限，高度是否符合起飞的条件
+#####do_takeoff_help(hold_altitude, pitch_limit_min) 
 
-- do_takeoff_help(hold_altitude, pitch_limit_min) 
+定高模式下的起飞帮助
 
-  定高模式下的起飞帮助
+如果in_takeoff_situation()，给hold_alt，pitch_limit_min赋值，否则只给pitch_limit_min
 
-  如果in_takeoff_situation()，给hold_alt，pitch_limit_min赋值，否则只给pitch_limit_min
+#####update_desired_altitude(dt) bool
 
-- update_desired_altitude(dt) bool
+根据俯仰输入更新期望高度,参数为Time step，单位时间
 
-  根据俯仰输入更新期望高度,参数为Time step，单位时间
+实现：
 
-  实现：
+​	0.06 ~ -0.06 视为0， 其余1 ~ 0.06 | -0.06 ~  -1 部分按比例，更新高度 = 原高度 + 最大变化速率*dt * pitch （俯仰指数）
 
-  ​	0.06 ~ -0.06 视为0， 其余1 ~ 0.06 | -0.06 ~  -1 部分按比例，更新高度 = 原高度 + 最大变化速率*dt * pitch （俯仰指数）
+​	如果是垂直起降飞机，在旋翼状态/转化状态，高度是当前高度。
 
-  ​	如果是垂直起降飞机，在旋翼状态/转化状态，高度是当前高度。
+#####control_position(global_pos, ground_speed, pos_sp_triplet) bool
 
-- control_position(global_pos, ground_speed, pos_sp_triplet) bool
+控制位置
 
-  控制位置
+#####get_tecs_pitch() float
 
-- get_tecs_pitch() float
+如果mTecs可行，返回getPitchSetpoint()否则返回_tecs.get_pitch_demand()
 
-  如果mTecs可行，返回getPitchSetpoint()否则返回_tecs.get_pitch_demand()
+#####get_tecs_thrust() float
 
-- get_tecs_thrust() float
+同上
 
-  同上
+#####get_demanded_airspeed() float
 
-- get_demanded_airspeed() float
+获取需要的空速大小
 
-  获取需要的空速大小
+实现算法如下：
 
-  实现算法如下：
+​	判断输入油门的大小，设定可变化速度为当前速度距最大/最小速度的差，airspeed_trim字面上是修剪的空速速度（即当前速度）
 
-  ​	判断输入油门的大小，设定可变化速度为当前速度距最大/最小速度的差，airspeed_trim字面上是修剪的空速速度（即当前速度）
+​		如果油门输入小于0.5，输出速度=最小速度+可变化速度×油门输入值×2；（如果油门输入值0.5，则速度不变化，在输入值小于0.5的情况下，油门输入×2 < 1）
 
-  ​		如果油门输入小于0.5，输出速度=最小速度+可变化速度×油门输入值×2；（如果油门输入值0.5，则速度不变化，在输入值小于0.5的情况下，油门输入×2 < 1）
+​		如果油门大于0.5，输出速度 = 当前速度 + 可变化速度 × （油门输入值-0.5）*2（减去0.5的基础油门）
 
-  ​		如果油门大于0.5，输出速度 = 当前速度 + 可变化速度 × （油门输入值-0.5）*2（减去0.5的基础油门）
+#####calculate_target_airspeed(airspeed_demand) float
 
-- calculate_target_airspeed(airspeed_demand) float
+计算目标空速，没看懂想干嘛
 
-  计算目标空速，没看懂想干嘛
+实现：
 
-  实现：
+​	当前空速根据全局变量\_airspeed_valid是否合法，合法取当前控制状态的空速，否则取中值。
 
-  ​	当前空速根据全局变量\_airspeed_valid是否合法，合法取当前控制状态的空速，否则取中值。
+​	目标空速= airspeed_demand+\_groundsped_undershoot(期望速度+地速)，再对目标空速进行限制，使其在最大最小之间。
 
-  ​	目标空速= airspeed_demand+\_groundsped_undershoot(期望速度+地速)，再对目标空速进行限制，使其在最大最小之间。
+​	\_airspeed_error这个全局变量是目标速度和当前空速之差，应该是用来调整速度的。
 
-  ​	\_airspeed_error这个全局变量是目标速度和当前空速之差，应该是用来调整速度的。
+​	返回目标速度
 
-  ​	返回目标速度
+#####**calualte_gndspeed_undershoot(current_pos, ground\_speed_2d, pos_sp_triplet) void **
 
-- **calualte_gndspeed_undershoot(current_pos, ground\_speed_2d, pos_sp_triplet) void **
+计算对地下降速度\_groundspeed_undershoot，对地下冲速度（固定翼速度不够，升力<重力 产生的飞行高度下降速度） 是飞机没有到达一定地速的结果。因此，当空速大于最小地速时候，对地下冲速度为0，否则为正当小于最小地速时候。
 
-  计算对地下降速度\_groundspeed_undershoot，对地下冲速度（固定翼速度不够，升力<重力 产生的飞行高度下降速度） 是飞机没有到达一定地速的结果。因此，当空速大于最小地速时候，对地下冲速度为0，否则为正当小于最小地速时候。
+​	根据distance和delta_altitude计算期望的速度，与当前速度之差就是应该对地下降的速度，
 
-  ​	根据distance和delta_altitude计算期望的速度，与当前速度之差就是应该对地下降的速度，
+#####task_main_trampoline()
 
-- task_main_trampoline()
+构建FixedwingPositionControl类，赋给l1_control命名空间的g\_control指针，开始运行``task_main()``函数，然后释放。
 
-  构建FixedwingPositionControl类，赋给l1_control命名空间的g\_control指针，开始运行``task_main()``函数，然后释放。
+#####task_main() void
 
-- task_main() void
+先订阅需要的信息，设置更新速率等。
 
-  先订阅需要的信息，设置更新速率等。
+fds[2]，fds[0]负责检查参数更新，fds[1]负责位置更新
 
-  fds[2]，fds[0]负责检查参数更新，fds[1]负责位置更新
+while
 
-  while
+​	px4_poll检查是否有更新，更新control_mode,status
 
-  ​	px4_poll检查是否有更新，更新control_mode,status
+​	如果参数更新，获取更新参数
 
-  ​	如果参数更新，获取更新参数
+​	如果位置更新，control_statue,setpoint,sensor_combined,manual_control_setpoint更新，运行control_position()函数，如果控制成功，通过uorb机制输出控制结果信息，最后如果导航信息很久没有更新，输出导航信息没看懂
 
-  ​	如果位置更新，control_statue,setpoint,sensor_combined,manual_control_setpoint更新，运行control_position()函数，如果控制成功，通过uorb机制输出控制结果信息，最后如果导航信息很久没有更新，输出导航信息没看懂
+#####reset_takeoff_state() void
 
-- reset_takeoff_state() void
+#####reset_landing_state() void
 
-- reset_landing_state() void
+#####tecs_update_pitch_trottle() void
 
-- tecs_update_pitch_trottle() void
+一个调用实现TECS的包装器函数(mTECS是只通过参数启用)
 
-  一个调用实现TECS的包装器函数(mTECS是只通过参数启用)
-
-类的实现流程：
+#####类的实现流程：
 
 ​	从fw_pos_control_l1_main函数开始执行，这个main方法有命令行参数，根据参数，输出是否fw_pos_control_l1这个模块的运行状态，实际运行调用l1\_control::g\_control指针所创建的对象,调用FixedwingPositionControl::start方法的px4\_task_spawn_cmd来初始化创建对象。再通过task_main_trampoline真正创建类的对象。
 
 ​	FixedwingPositionControl::task_main()正式开始：
 
-- 订阅全局位置，三个一组的航点位置，控制状态，传感器状态，控制模式，飞行器状态，参数，手动输入等通过uORB订阅。设置更新速率
+订阅全局位置，三个一组的航点位置，控制状态，传感器状态，控制模式，飞行器状态，参数，手动输入等通过uORB订阅。设置更新速率
 
 - 设置px4_pollfd_struct_t fds[2]这个结构体，fds[0]作为\_params\_sub，fds[1]作为\_global_pos_sub的监视，开始循环。
 
@@ -651,7 +650,7 @@ usage负责输出
 
   调用perf_end(\_loop_perf)结束
 
-**control_position()的函数运行流程：**
+#####**control_position()的函数运行流程：**
 
 1. \_control_position_last_called记录上一次位置控制信息
 
@@ -659,32 +658,145 @@ usage负责输出
 
 3. 默认不适用方向舵，不使用襟翼,eas2tas（不明）,accel_body是飞行器的加速度，accel_earth是飞行器对地的加速度，得到这个参数用于tecs.update_state()
 
-4. in_air_alt_control是判断飞行器是否滞空的标识，飞行器的控制模式在auto|velocity|altitude下 & 飞行器没有降落(!\_vehicle_status.condition_landed),是可以控制的，同样，这个参数用于tecs.update_state()
+4. 构造ground_speed_2d,调用calculate_gndspeed_undershoot()构造函数
 
-5. 如果mTecs不可用，就使用tecs.update_state()更新参数
+5. in_air_alt_control是判断飞行器是否滞空的标识，飞行器的控制模式在auto|velocity|altitude下 & 飞行器没有降落(!\_vehicle_status.condition_landed),是可以控制的，同样，这个参数用于tecs.update_state()
 
-6. 计算下冲速度\_gndspeed_undershoot
+6. 如果mTecs不可用，就使用tecs.update_state()更新参数
 
-7. 计算高度差altitude_error，目标高度-当前高度
+7. 计算下冲速度\_gndspeed_undershoot
 
-8. 设置油门上限
+8. 计算高度差altitude_error，目标高度-当前高度
 
-9. _was_in_air置为true，记录在空中的时间\_time_went_in_air和高度\_takeoff_ground_alt
+9. 设置油门上限
 
-10. 如果飞行器有条件降落，\_was_in_air置为false
+10. _was_in_air置为true，记录在空中的时间\_time_went_in_air和高度\_takeoff_ground_alt
 
-11. 根据飞行模式控制
+11. 如果飞行器有条件降落，\_was_in_air置为false
+
+12. 根据飞行模式控制
 
     - 自动模式下当前航点合法 flag_control_auto_enabled & pos_sp_triplet.current.valid
 
-    1. 如果从其他模式切换过来，重置积分器。\_control_mode_current全局变量记录上一个模式，如果mTecs可用，重置mTecs,否则tecs.reset_state(),将当前模式置为FW_POSCTRL_MODE_AUTO
-    2. 更新定高高度为当前高度，定航航向为当前航向
+    1. 如果从FW_POSCTRL_MODE_OTHER(其他模式)切换过来，重置积分器。\_control_mode_current全局变量记录当前模式，如果mTecs可用，重置mTecs,否则tecs.reset_state(),将当前模式置为FW_POSCTRL_MODE_AUTO
+
+    2. 更新定高高度\_hold_alt为当前高度，定航航向\_hdg_hold_yaw为当前航向
+
+    3. 获取控制对象\_l1_control的circle_mode()状态,后面在控制完成后决定是否重置积分器；
+
+    4. ？1293
+
+    5. 构造next_wp,curr_wp,prev_wp；目前还不知道有什么用
+
+       前俩个使用pos_sp_triplet对象的current赋值，prev_wp根据pos_sp_triplet的previous是否合法：
+
+       若是，使用previous的值;
+
+       否则，使用current的值。
+
+    6. 目标速度(mission_airspeed)默认是需要修改的速度(\_parameters.airspeed_trim),
+
+       如果当前的巡航速度符合范围&巡航速度>0.1，改为当前巡航速度 (_pos_sp_triplet.current.cruising_speed)
+
+       目标速度作为calculate_target_airspeed()的参数
+
+    7. 根据当前航点的状态控制
+
+       - 怠机状态(SETPOINT_TYPE_IDLE),可认为关机中
+
+         (\_att_sp应该就是控制输出)
+
+         油门，俯仰，滚转为0
+
+       - 普通航点(SETPOINT_TYPE_POSITION)
+
+         使用\_l1\_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground\_speed\_2d)做普通的导航，获得\_att\_sp.roll_body,yaw_body的值(通过调用\_l1_control的方法)
+
+         调用tecs_update_pitch_throttle()更新俯仰和油门
+
+       - 徘徊航点(SETPOINT_TYPE_LOITER)
+
+         使用\_l1\_control.navigate\_loiter()方法，做徘徊的导航，获得\_att\_sp.roll_body,yaw_body的值(通过调用\_l1_control的方法)
+
+         根据条件设置高度：
+
+         ​	如果是因为中止着陆而进入徘徊模式，需要将高度设定高于降落模式
+
+         ​	否则，设置为当前航点的高度
+
+         判断是否是起飞模式 | 因为中止降落而没有低于安全高度
+
+         ​	是，限制滚转在15°内
+
+         tecs_update_pitch_throttle()更新俯仰和油门
+
+       - 降落航点(SETPOINT_TYPE_LAND)
+
+         降落模式开启襟翼，记录开始着陆的时间\_time_started_landing
+
+         // Horizontal landing control 
+
+         计算上一个航点到当前航点的方向bearing_lastwp_currwp,飞行器到当前航点的方向bearing_airplane_currwp，以及当前位置到当前目标航点的距离wp_distance
+
+         如果飞行器到航点的方位-上一个航点到当前航点的方位差>90°
+
+         ​	设置wp_distance_save=0，偏差太大
+
+         （创建虚拟航点在期望的路径上，但是一些距离落后于航点（没看懂这句）。这样可以确保飞机即使在关闭废除降落航点时也能在期望飞行路径上）
+
+         根据方位和距离产生虚拟航点curr_wp_shifted,但是感觉后面没用啊
+
+         如果当前距离据航点距离小于着陆的指向距离|| 着陆进入无可返回的状态 
+
+         （可以认为是准备水平方向准备就绪或者为了进入安全距离的保护，锁住方向，沿着当前路径一直走）
+
+         是：
+
+         ​	如果land_noreturn_horizontal是false，第一次进入,设置target_bearing
+
+         ​		如果前一个航点合法，target_bearing=bearing_lastwp_Currwp;
+
+         ​		否则，为当前航线\_yaw
+
+         ​	通过\_l1_control.navigate_heading()做定航的导航
+
+         否：
+
+         ​	\_l1_control.navigate_waypoint()	值做普通的航点控制
+
+         获得\_att\_sp.roll_body,yaw_body的值(通过调用\_l1_control的方法)
+
+         如果land_noreturn_horizontal为true，水平方向无法回退了，
+
+         ​	限制滚转角度-10~10°
+
+         //Vertical landing control
+
+         (使用tecs姿态控制来降落,如果近地，使用最小的俯仰，限制滚转来，而且高度误差为负，为了降落)
+
+         计算得到降落油门，降落空速，进场空速，  
+
+         判断是否有地形评估：
+
+         是：
+
+         ​	1482
+
+         否：
+
+       - 起飞航点(SETPOINT_TYPE_TAKEOFF)
+
+    8. 如果是降落航点，重置降落状态；
+
+       如果是起飞航点，重置起飞状态
+
+       如果航点前是循环模式，航点后不是循环模式，重置积分器
 
     -  在定速模式下高度控制模式 flag_control_velocity_enabled & flag_control_altitude_enabled
-    - 在高度控制模式下 flag_control_altitude_enabled
-    - 其他情况下
+    -  在高度控制模式下 flag_control_altitude_enabled
+    -  其他情况下
 
-12. copy thrust output for publication
+13. copy thrust output for publication
 
 ##QgroundControl安装
 
