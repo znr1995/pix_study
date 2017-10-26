@@ -650,6 +650,18 @@ while
 
   调用perf_end(\_loop_perf)结束
 
+注：\_global_pos是当前飞行器的位置
+
+​	\_paramters是全局参数
+
+​	pos_sp_triplet是航点三兄弟的结构体
+
+​	\_att_sp设定的姿态控制
+
+​	\_vehicle_status 飞行器的状态
+
+​	_manual 手动控制输入的结构体
+
 #####**control_position()的函数运行流程：**
 
 1. \_control_position_last_called记录上一次位置控制信息
@@ -710,47 +722,43 @@ while
 
        - 普通航点(SETPOINT_TYPE_POSITION)
 
-         使用\_l1\_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground\_speed\_2d)做普通的导航，获得\_att\_sp.roll_body,yaw_body的值(通过调用\_l1_control的方法)
-
-         调用tecs_update_pitch_throttle()更新俯仰和油门
+         1. 使用\_l1\_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground\_speed\_2d)做普通的导航，获得\_att\_sp.roll_body,yaw_body的值(通过调用\_l1_control的方法)
+         2. 调用tecs_update_pitch_throttle()更新俯仰和油门
 
        - 徘徊航点(SETPOINT_TYPE_LOITER)
 
-         使用\_l1\_control.navigate\_loiter()方法，做徘徊的导航，获得\_att\_sp.roll_body,yaw_body的值(通过调用\_l1_control的方法)
-
-         根据条件设置高度：
+         1. 使用\_l1\_control.navigate\_loiter()方法，做徘徊的导航，获得\_att\_sp.roll_body,yaw_body的值(通过调用\_l1_control的方法)
+         2. 根据条件设置高度：
 
          ​	如果是因为中止着陆而进入徘徊模式，需要将高度设定高于降落模式
 
          ​	否则，设置为当前航点的高度
 
-         判断是否是起飞模式 | 因为中止降落而没有低于安全高度
+         3. 判断是否是起飞模式 | 因为中止降落而没有低于安全高度
 
          ​	是，限制滚转在15°内
 
-         tecs_update_pitch_throttle()更新俯仰和油门
+         4. tecs_update_pitch_throttle()更新俯仰和油门
 
        - 降落航点(SETPOINT_TYPE_LAND)
 
-         降落模式开启襟翼，记录开始着陆的时间\_time_started_landing
+         1. 降落模式开启襟翼，记录开始着陆的时间\_time_started_landing
 
          // Horizontal landing control 
 
-         计算上一个航点到当前航点的方向bearing_lastwp_currwp,飞行器到当前航点的方向bearing_airplane_currwp，以及当前位置到当前目标航点的距离wp_distance
-
-         如果飞行器到航点的方位-上一个航点到当前航点的方位差>90°
+         2. 计算上一个航点到当前航点的方向bearing_lastwp_currwp,飞行器到当前航点的方向bearing_airplane_currwp，以及当前位置到当前目标航点的距离wp_distance
+         3. 如果飞行器到航点的方位-上一个航点到当前航点的方位差>90°
 
          ​	设置wp_distance_save=0，偏差太大
 
          （创建虚拟航点在期望的路径上，但是一些距离落后于航点（没看懂这句）。这样可以确保飞机即使在关闭废除降落航点时也能在期望飞行路径上）
 
-         根据方位和距离产生虚拟航点curr_wp_shifted,但是感觉后面没用啊
-
-         如果当前距离据航点距离小于着陆的指向距离|| 着陆进入无可返回的状态 
+         4. 根据方位和距离产生虚拟航点curr_wp_shifted,但是感觉后面没用啊
+         5. 如果当前距离据航点距离小于着陆的指向距离|| 着陆进入无可返回的状态 
 
          （可以认为是准备水平方向准备就绪或者为了进入安全距离的保护，锁住方向，沿着当前路径一直走）
 
-         是：
+         ​	是：
 
          ​	如果land_noreturn_horizontal是false，第一次进入,设置target_bearing
 
@@ -760,13 +768,12 @@ while
 
          ​	通过\_l1_control.navigate_heading()做定航的导航
 
-         否：
+         ​	否：
 
          ​	\_l1_control.navigate_waypoint()	值做普通的航点控制
 
-         获得\_att\_sp.roll_body,yaw_body的值(通过调用\_l1_control的方法)
-
-         如果land_noreturn_horizontal为true，水平方向无法回退了，
+         6. 获得\_att\_sp.roll_body,yaw_body的值(通过调用\_l1_control的方法)
+         7. 如果land_noreturn_horizontal为true，水平方向无法回退了，
 
          ​	限制滚转角度-10~10°
 
@@ -774,17 +781,129 @@ while
 
          (使用tecs姿态控制来降落,如果近地，使用最小的俯仰，限制滚转来，而且高度误差为负，为了降落)
 
-         计算得到降落油门，降落空速，进场空速，  
+         8. 计算得到降落油门(throttle_land)，降落空速(airspeed_land)，进场空速(airspeed_aproach)  
 
-         判断是否有地形评估：
+         9. 判断是否有地形评估(\_paramters.land_use_terrain_estimate)：
 
-         是：
+            是：
 
-         ​	1482
+            ​	判断地形评估高度是否有效(\_global_pos.terrain_alt_valid):
 
-         否：
+            ​		设置地形评估高度，上一个地形评估的值，上一个更新的值
 
-       - 起飞航点(SETPOINT_TYPE_TAKEOFF)
+            ​	如果是第一次进入，之前没有设置过(\_time_last_t_alt==0):	
+
+            ​		如果距开始降落10s内
+
+            ​		是：地形评估设置为当前航点的高度
+
+            ​		否：地形评估高度设置为当前航点的高度，但是中止导航。(abort_landing = true)
+
+            ​	如果地形评估无效&距上一次更新的时间没有超过规定 || 垂直控制no way back
+
+            ​		设置地形评估为上一次有效值
+
+            ​	否则：
+
+            ​		地形评估高度设置为当前航点的高度，但是中止导航。(abort_landing = true)
+
+         ​	否：
+
+         ​		地形评估高度设为当前航点的高度(terrain_alt = pos_sp_triplet.current.lat)
+
+          10.  计算L_altitude_rel,landing_slope_alt_Rel_dersired(1516)?
+
+          11.  （如果当前飞行器的高度<地面高度+降落曲线的高度 && 距离<降落距离+5 ） || 垂直控制no way back
+
+               是：//可以带油门降落，因为高度比预计高度低
+
+               ​	设置油门最大值，设置设定点的航向，运行使用垂尾
+
+               如果高度低于发动机限制高度 | 降落发动机限制开启
+
+               ​	设置油门的最大值
+
+               ​	将land_motor_lim设为true
+
+               ​	获取flare_curve_alt_Rel
+
+               ​	如果当前的垂直相对高度》上一个垂直相对高度 & no 	way back  认为在地上停留
+
+               ​	使用tecs更新油门和俯仰
+
+               ​	如果目前还没有到垂直控制no way back 的地步
+
+               ​		是：设置目标俯仰为0，计算height_flare，设置land_noreturn_vertical=true
+
+               ​		否：当前姿态中vel_d是否>0.1
+
+               ​			是：设置picth_body?
+
+               ​			否：不改变pitch_body	
+
+               ​	更新flare_curve_alt_rel_last为当前的值
+
+               否：//这里通过滑翔曲线来使高度过高的点下降,直到到与期待的航线的交叉点
+
+               如果当前高度>地形高度+降落期望高度 || land_onslope
+
+               ​	是：期待高度alttitude_desired_rel设为landing_slope_alt_rel_desired
+
+               ​	否：altitude_desired_rel设为L_altitude_rel?1615
+
+               使用tecs更新油门和俯仰
+
+               ​
+
+       - **起飞**航点(SETPOINT_TYPE_TAKEOFF)
+
+         如果runway_takoff可用
+
+         是：runway_takeoff的起飞模块的具体控制，猜的
+
+         1. 如果runway_takeoff没有初始化，初始化它
+         2. 获取地形高度terrain_alt
+         3. 使用\_runway_takeoff模块更新
+         4. 使用\_l1_control的航点导航模式？1662
+         5. 获取\_runway_takeoff的最大俯仰角takeoff_pitch_max_deg
+         6. 使用tecs更新油门俯仰
+         7. 从\_runway_takeoff模块获取roll_bady,yaw_body,fw_control_yaw,pitch_body,roll_reset_integral,pitch_reset_integral的值
+
+         否：//如果runway_takeoff模块不可用，使用起飞检测模块 
+
+         如果起飞检测模块可用&&launch_detection_state 不是LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS
+
+         ​	是：
+
+         ​		如果距上一次更新时间>4e6，给控制台消息
+
+         ​		起飞检测更新(launchDetector.update())
+
+         ​		起飞检测状态更新（launch_detection_state）
+
+         ​	否：
+
+         ​		起飞检测不可用，置状态为需要控制
+
+         //起飞控制依赖于起飞检测状态
+
+         如果起飞检测状态 != 	LAUNCHDETECTION_RES_NONE
+
+         ​	是：飞行器起飞
+
+         ​		使用\_l1_control进行航点控制
+
+         ​		获取\_l1_control的roll_body,yaw_body
+
+         ​		选择油门：只有在LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS模式下，我们使用全油门，否则其他我们使用先前起飞的油门 
+
+         ​		选择最大的俯仰角度：起飞检测模块可能会根据起飞状态给俯仰强加一个限制
+
+         ​		使用最小的俯仰和最小的滚转如果目标高度不在爬升误差之内?参数细议1747	
+
+         ​	否：
+
+         ​		认为在地上，重置积分器，设置默认的roll,pitch
 
     8. 如果是降落航点，重置降落状态；
 
@@ -793,10 +912,95 @@ while
        如果航点前是循环模式，航点后不是循环模式，重置积分器
 
     -  在定速模式下高度控制模式 flag_control_velocity_enabled & flag_control_altitude_enabled
+
+        俯仰设置高度，油门设置速度，航向设定航点
+
+       1. 如果当前模式不是FW_POSCTRL_MODE_POSITION,需要重置一下，\_hold_alt,\_hdg_hold_yaw,
+
+       2. 如果当前模式是FW_POSCTRL_MODE_OTHER,重置积分器（mTecs可用重置mTecs，否则重置tecs）
+
+       3. 将控制模式改到FW_POSCTRL_MODE_POSITION
+
+       4. 获取期望速度altctrl_airspeed和爬升climbout_requested,?do_takeoff_help
+
+       5. 油门最大值设定为参数的油门最大值，如果飞行器有条件降落且油门值小于油门门限，油门最大值为0
+
+       6. 使用tecs更新油门和俯仰
+
+       7. （航向控制）如果航向的输入值小于偏航的门限
+
+          是：
+
+          ​	如果控制状态(\_ctrl_state)的偏航速率小于设定的门限且偏航没有被锁定，锁定偏航（\_yaw_lock_engaged设为true）
+
+          ​	//如果用户试图在定航模式下起飞，重置航向确保起飞不滚转
+
+          ​	如果是起飞情况：\_hdg_hold_enable -> false，\_yaw_lock_engaged -> true？1893
+
+          ​	如果是\_yaw_lock_engaged
+
+          ​		将\_hdg_hold_enabled设为true，设置\_hdg_hold_yaw为当前航线，？1907-1912
+
+          ​	前面获取到prev_wp,curr_wp,给\_l1_control做参数，使用其做航点控制，获取roll,yaw的输出值
+
+          ​	如果是起飞情形，限制roll在15°内
+
+          否：
+
+          ​	\_hdg_hold_enable -> false，\_yaw_lock_engaged -> false
+
     -  在高度控制模式下 flag_control_altitude_enabled
+
+       1. 如果控制模式不是位置控制模式/高度控制模式(FW_POSCTRK_MODE_POSITION/ALITUDE),设置定高(\_hold_alt)为当前高度
+       2. 如果当前模式是FW_POSCTRL_MODE_OTHER,重置积分器（mTecs可用重置mTecs，否则重置tecs）
+       3. 设置控制模式为FW_POSCTRL_MODE_ALTITUDE
+       4. 获取期望速度altctrl_airspeed和爬升climbout_requested,?do_takeoff_help
+       5. 油门最大值设定为参数的油门最大值，如果飞行器有条件降落且油门值小于油门门限，油门最大值为0
+       6. 使用tecs更新油门和俯仰
+
     -  其他情况下
 
-13. copy thrust output for publication
+       1. 将控制模式设为FW_POSCTRL_MODE_OTHER，设置定高(\_hold_alt)为当前高度
+       2. 设置\_time_started_landing 和\_time_last_t_alt为0
+       3. abort_landing 为false,重置起飞降落状态
+
+13. copy thrust output for publication，根据具体条件设置油门
+
+    1. 如果飞行器引擎除了问题，
+
+       输出 0
+
+    2. 在自动模式下 & 当前点是起飞点 & 降落检测状态是ENABLEMOTORS & _runway_takeoff不可用
+
+       根据launchDetectionEnabled的状态，可用就设置油门为起飞的油门，否则为怠机油门
+
+    3. 如果是自动模式 & 当前航点是起飞航点 & _runway_takeoff可用
+
+       油门设为runway_takeoff的有油门
+
+    4. 如果自动模式 & 航点为怠机航点
+
+       油门为0
+
+    5. 其他
+
+       如果飞行器有降落条件：
+
+       ​	是：油门在最大和怠机油门中取最小
+
+       ​	否：控制油门(get_tecs_thrust())|油门最大值中取最小
+
+14. 如果不满足一下条件：
+
+    (是自动模式 &&（（航点为起飞航点 &&（起飞检测为 RES_NONE || runway_takeoff 可用）） || （航点为降落航点 && 垂直方向降落nowayback））)
+
+    输出控制的俯仰为get_tecs_pitch()
+
+15. 根据控制模式的flag_control_position_enabled，
+
+    ​	是：last_manual 为false
+
+    ​	否：last_manual为 true
 
 ##QgroundControl安装
 
