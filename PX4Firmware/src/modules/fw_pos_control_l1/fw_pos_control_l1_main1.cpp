@@ -1126,7 +1126,7 @@ bool FixedwingPositionControl::update_desired_altitude(float dt)
 	 * 这是为了保护飞行器出现无命令的高度变化当高度增高/下降时候
 	 * 就是防止飞行器出现剧烈抖动，比如突然降了1m，不能突然升1m回到原来的高度，而是依然保持平稳飞行
 	 */
-	/* EPV是什么鬼 */
+	/* EPV应该就是防止摇杆轻微抖动而影响飞行器飞行高度上下变化太灵敏的阈值 */
 	if (fabsf(_althold_epv - _global_pos.epv) > ALTHOLD_EPV_RESET_THRESH) {
 		_hold_alt = _global_pos.alt;
 		_althold_epv = _global_pos.epv;
@@ -1420,8 +1420,10 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			curr_wp_shifted(0) = (float)lat;
 			curr_wp_shifted(1) = (float)lon;
 
-			// we want the plane to keep tracking the desired flight path until we start flaring 我们期望飞行器能追踪期望路径直到我们启动信号
-			// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds 如果高度保持模式进入的太早，会增加穿过跑道的距离
+			// we want the plane to keep tracking the desired flight path until we start flaring 
+			//我们期望飞行器能追踪期望路径直到我们启动信号
+			// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds 
+			//如果高度保持模式进入的太早，会增加穿过跑道的距离
 			//if (land_noreturn_vertical) {
 			if (wp_distance < _parameters.land_heading_hold_horizontal_distance || land_noreturn_horizontal) {
 
@@ -1513,7 +1515,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 
 			/* Calculate distance (to landing waypoint) and altitude of last ordinary waypoint L 
-				计算据上一个waypoint的距离和高度 */
+				计算据上一个普通航点的距离和高度 */
 			float L_altitude_rel = pos_sp_triplet.previous.valid ?
 					       pos_sp_triplet.previous.alt - terrain_alt : 0.0f;
 
@@ -1658,6 +1660,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 				/*
 				 * Update navigation: _runway_takeoff returns the start WP according to mode and phase.
 				 * If we use the navigator heading or not is decided later.
+				 * 我们是否使用定航在稍后决定
 				 */
 				_l1_control.navigate_waypoints(_runway_takeoff.getStartWP(), curr_wp, current_position, ground_speed_2d);
 
@@ -1898,6 +1901,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			if (_yaw_lock_engaged) {
 
 				/* just switched back from non heading-hold to heading hold */
+				//从非航向锁定到航向锁定
 				if (!_hdg_hold_enabled) {
 					_hdg_hold_enabled = true;
 					_hdg_hold_yaw = _yaw;
@@ -2290,8 +2294,8 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		_was_in_transition = true;
 		_asp_after_transition = _ctrl_state.airspeed;
 
-	// after transition we ramp up desired airspeed from the speed we had coming out of the transition
-	// 转换之后，从转化速度到期望速度
+		// after transition we ramp up desired airspeed from the speed we had coming out of the transition
+		// 转换之后，从转化速度到期望速度
 	} else if (_was_in_transition) {
 		_asp_after_transition += dt * 2; // increase 2m/s
 
@@ -2370,7 +2374,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		float pitch_for_tecs = _pitch;
 
 		// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
-		// between multirotor and fixed wing flight
+		// between multirotor and fixed wing fligh如果 是尾起的飞行器，我们需要在旋翼和固定翼模式中切换
 		if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
 			math::Matrix<3,3> R_offset;
 			R_offset.from_euler(0, M_PI_2_F, 0);
