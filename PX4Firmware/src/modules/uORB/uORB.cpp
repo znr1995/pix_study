@@ -33,7 +33,7 @@
 
 /**
  * @file uORB.cpp
- * A lightweight object broker.
+ * A lightweight object broker. 这个文件的实现依赖于ORB::Manager
  */
 
 #include "uORB.h"

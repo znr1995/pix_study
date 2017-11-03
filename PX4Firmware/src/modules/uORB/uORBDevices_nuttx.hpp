@@ -72,16 +72,17 @@ public:
 	/**
 	 * Method to create a subscriber instance and return the struct
 	 * pointing to the subscriber as a file pointer.
+	 * 创建订阅实例并且返回订阅文件的指针
 	 */
 	virtual int  open(struct file *filp);
 
 	/**
-	 * Method to close a subscriber for this topic.
+	 * Method to close a subscriber for this topic. 关闭这个主题的订阅
 	 */
 	virtual int   close(struct file *filp);
 
 	/**
-	 * reads data from a subscriber node to the buffer provided.
+	 * reads data from a subscriber node to the buffer provided.从订阅的节点读取数据到buffer
 	 * @param filp
 	 *   The subscriber from which the data needs to be read from.
 	 * @param buffer
@@ -95,7 +96,7 @@ public:
 
 	/**
 	 * writes the published data to the internal buffer to be read by
-	 * subscribers later.
+	 * subscribers later. 从buffer中写入数据到文件中
 	 * @param filp
 	 *   the subscriber; this is not used.
 	 * @param buffer
@@ -108,12 +109,12 @@ public:
 	virtual ssize_t   write(struct file *filp, const char *buffer, size_t buflen);
 
 	/**
-	 * IOCTL control for the subscriber.
+	 * IOCTL control for the subscriber. IO控制
 	 */
 	virtual int   ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
-	 * Method to publish a data to this node.
+	 * Method to publish a data to this node. 发布一个数据到这个节点
 	 */
 	static ssize_t publish
 	(
@@ -123,7 +124,7 @@ public:
 	);
 
 	/**
-	 * processes a request for add subscription from remote
+	 * processes a request for add subscription from remote 处理远程添加订阅的请求
 	 * @param rateInHz
 	 *   Specifies the desired rate for the message.
 	 * @return
@@ -133,12 +134,12 @@ public:
 	int16_t process_add_subscription(int32_t rateInHz);
 
 	/**
-	 * processes a request to remove a subscription from remote.
+	 * processes a request to remove a subscription from remote. 处理远程移除订阅的请求
 	 */
 	int16_t process_remove_subscription();
 
 	/**
-	 * processed the received data message from remote.
+	 * processed the received data message from remote. 处理接受从远程数据
 	 */
 	int16_t process_received_message(int32_t length, uint8_t *data);
 
@@ -146,6 +147,7 @@ public:
 	  * Add the subscriber to the node's list of subscriber.  If there is
 	  * remote proxy to which this subscription needs to be sent, it will
 	  * done via uORBCommunicator::IChannel interface.
+	  	添加订阅者到订阅者列表，如果这个订阅需要通过代理发送，需要实现uORBCommunicator::IChannel接口
 	  * @param sd
 	  *   the subscriber to be added.
 	  */
@@ -154,13 +156,14 @@ public:
 	/**
 	 * Removes the subscriber from the list.  Also notifies the remote
 	 * if there a uORBCommunicator::IChannel instance.
+	 * 移除订阅者。
 	 * @param sd
 	 *   the Subscriber to be removed.
 	 */
 	void remove_internal_subscriber();
 
 	/**
-	 * Return true if this topic has been published.
+	 * Return true if this topic has been published. 这个主题是否被发布
 	 *
 	 * This is used in the case of multi_pub/sub to check if it's valid to advertise
 	 * and publish to this node or if another node should be tried. */
