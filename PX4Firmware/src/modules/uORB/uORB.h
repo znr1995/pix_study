@@ -84,7 +84,7 @@ enum ORB_PRIO {
  *
  * @param _name		The name of the topic.
  */
-#define ORB_ID(_name)		&__orb_##_name
+#define ORB_ID(_name)		&__orb_##_name  //_orb##_name = _orb_name（name就是参数拼接）ORB_ID(hello) = _orb_hello
 
 /**
  * Declare (prototype) the uORB metadata for a topic.
@@ -132,7 +132,7 @@ __BEGIN_DECLS
 typedef void 	*orb_advert_t;
 
 /**
- * Advertise as the publisher of a topic.
+ * Advertise as the publisher of a topic. 作为发布者做广播
  *
  * This performs the initial advertisement of a topic; it creates the topic
  * node in /obj if required and publishes the initial data.

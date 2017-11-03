@@ -65,3 +65,85 @@ data:指向发布数据的制作
 
 ## uORB原理解析：
 
+### 乱乱七八糟
+
+uORB namespace中有类*ORBMap* 和 *DeviceNode*
+
+猜测：
+
+​	Map类负责管理维护数据结构，Node才是具体的存储类
+
+### uORB
+
+####orb_advertise(*meta, *data) orb_advert_t
+
+
+
+####orb_advertise(*meta, *data, *instance, priority) orb_advert_t
+
+####orb_pubshlist_auto(*meta, *handle, *data, *instance, priority) int
+
+####orb_publish(*meta, handle, *data) int
+
+####orb_subscribe(*meta)
+
+####orb_subscribe_muti(*meta,  instance) int
+
+####orb_unsubscribe(handle) int
+
+####orb_copy(*meta, handle, *buffer) int
+
+####orb_check(handle, *updated) int
+
+####orb_stat(handle, *time) int
+
+####orb_exists(*meta, instance) int 
+
+####orb_group_count(*meta) int
+
+####orb_priority(handle, *priority) int
+
+####orb_set_interval(handle, interval) int
+
+
+
+### uORBCommon
+
+### ORBSet
+
+- insert(*node_node) void
+- find(*node_name) bool
+- erase(*node_name) bool
+- unlinkNext(Node*) void
+
+实现方式与ORBMap一毛一样，唯一的区别就是这个类维护的队列中的node节点是只有节点名字，没有节点设备。
+
+### ORBMap
+
+- insert(*node_name, *node) void
+- find(*node_name) bool
+- *get(\*node) uORB::DeviceNode
+- unlinkNext(*a) void
+
+类的实现流程：*(太简单了吧，过分)*
+
+​	类中维护一个队列，使用对象top,end俩个指针标识队列，
+
+​	当有新的数据结点，加入到end后面，查找、获取是从头到尾顺序查找队列，使用strcmp()比较node_name
+
+### Pulication
+
+### Subscription
+
+### uORBDevices_nuttx
+
+###uORBDevices_posix
+
+### uORBDevices
+
+### uORBManager
+
+### uORBTest_UnitTest
+
+### uORBUtils
+
