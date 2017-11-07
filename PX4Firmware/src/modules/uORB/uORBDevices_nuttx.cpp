@@ -78,26 +78,32 @@ int
 uORB::DeviceNode::open(struct file *filp)
 {
 	int ret;
-
-	/* is this a publisher? */
+	/**
+	 * 流程：
+	 * 判断是否是发布者的权限，
+	 * 判断是否之前有同样的发布者
+	 * 如果没有，将发布者属性设备当前进程PID
+	 * 使用CDev类实际打开文件
+	**/
+	/* is this a publisher? 是否是发布者 */
 	if (filp->f_oflags == O_WRONLY) {
 
 		/* become the publisher if we can */
 		lock();
 
 		if (_publisher == 0) {
-			_publisher = getpid();
+			_publisher = getpid(); //将发布者属性置为当前进程的PID
 			ret = OK;
 
 		} else {
-			ret = -EBUSY;
+			ret = -EBUSY;   //否则返回错误，已经被发布过了
 		}
 
 		unlock();
 
 		/* now complete the open */
 		if (ret == OK) {
-			ret = CDev::open(filp);
+			ret = CDev::open(filp);  //具体打开文件交给Cdev的open函数
 
 			/* open failed - not the publisher anymore */
 			if (ret != OK) {
@@ -109,6 +115,13 @@ uORB::DeviceNode::open(struct file *filp)
 	}
 
 	/* is this a new subscriber? */
+	/**
+	 * 实现流程：
+	 * 声明SubscriberData的结构体，初始化赋值后将指针赋给filp的f_priv
+	 * 打开的具体步骤交给CDev::open
+	 * 添加内部订阅
+	 * 返回ret
+	 * */
 	if (filp->f_oflags == O_RDONLY) {
 
 		/* allocate subscriber data */
@@ -146,12 +159,12 @@ uORB::DeviceNode::open(struct file *filp)
 int
 uORB::DeviceNode::close(struct file *filp)
 {
-	/* is this the publisher closing? */
+	/* is this the publisher closing? 如果是发布者关闭文件，将类的属性发布者设为0 */
 	if (getpid() == _publisher) {
 		_publisher = 0;
 
 	} else {
-		SubscriberData *sd = filp_to_sd(filp);
+		SubscriberData *sd = filp_to_sd(filp); 
 
 		if (sd != nullptr) {
 			hrt_cancel(&sd->update_call);
@@ -500,6 +513,7 @@ int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz)
 	// if there is already data in the node, send this out to
 	// the remote entity.
 	// send the data to the remote entity.
+	//使用多态实现订阅的这些流程，Manager的实例
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (_data != nullptr && ch != nullptr) { // _data will not be null if there is a publisher.

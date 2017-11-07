@@ -175,11 +175,11 @@ protected:
 
 private:
 	struct SubscriberData {
-		unsigned  generation; /**< last generation the subscriber has seen */
-		unsigned  update_interval; /**< if nonzero minimum interval between updates */
-		struct hrt_call update_call;  /**< deferred wakeup call if update_period is nonzero */
-		void    *poll_priv; /**< saved copy of fds->f_priv while poll is active */
-		bool    update_reported; /**< true if we have reported the update via poll/check */
+		unsigned  generation; /**< last generation the subscriber has seen 上一次订阅 */
+		unsigned  update_interval; /**< if nonzero minimum interval between updates 最小更新时间 */
+		struct hrt_call update_call;  /**< deferred wakeup call if update_period is nonzero 如果update_period不为0，更新推迟*/
+		void    *poll_priv; /**< saved copy of fds->f_priv while poll is active 保存fd的f_priv */
+		bool    update_reported; /**< true if we have reported the update via poll/check 如果更新过状态，置为true */
 		int   priority; /**< priority of publisher */
 	};
 
