@@ -54,6 +54,7 @@ public:
 
 	/**
 	 * same as above except this generators the path based on the string.
+	 * 除了这个是基于orbMsgName生成路径的，其他和上面同名函数一样
 	 */
 	static int node_mkpath(char *buf, Flavor f, const char *orbMsgName);
 

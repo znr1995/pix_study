@@ -318,6 +318,25 @@ private:
 
 ### uORBUtils
 
+工具类Utils中只有2个同名的静态函数
+
+```c++
+int node_mkpath(char* buf, Flavor f, const struct orb_metadata *meta, int *instance)
+int node_mkpath(char* buf, Flavor f, const char* orbMsgName)
+```
+
+参数含义：
+
+​	buf：输出路径的字符串
+
+​	f:	标志，是发布订阅还是作为参数（PUBSUB/PARAM）
+
+​	meta: 通过meta->o_name = orbMsgName
+
+​	instance: 如果是多个实例，对应相应的，否则默认为0
+
+​	生成路径为/(obj?param)/orbMsgName/instance ,应该是节点设备的文件路径
+
 ### uORBCommunicator
 
 ```c++

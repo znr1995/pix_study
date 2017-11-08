@@ -250,21 +250,21 @@ uORB::DeviceNode::write(struct file *filp, const char *buffer, size_t buflen)
 		}
 	}
 
-	/* If write size does not match, that is an error */
+	/* If write size does not match, that is an error 如果写入的大小与预计不符合，返回错误 */
 	if (_meta->o_size != buflen) {
 		return -EIO;
 	}
 
-	/* Perform an atomic copy. */
+	/* Perform an atomic copy. irqsave是加锁的吧 */
 	irqstate_t flags = irqsave();
 	memcpy(_data, buffer, _meta->o_size);
 	irqrestore(flags);
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
-	_generation++;
+	_generation++;  //版本叠加
 
-	/* notify any poll waiters */
+	/* notify any poll waiters 通知等待POLLIN的用户/订阅者 */
 	poll_notify(POLLIN);
 
 	_published = true;
