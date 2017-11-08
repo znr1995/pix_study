@@ -2,6 +2,7 @@
     "files.associations": {
         "ios": "cpp",
         "xutility": "cpp",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "list": "cpp"
     }
 }

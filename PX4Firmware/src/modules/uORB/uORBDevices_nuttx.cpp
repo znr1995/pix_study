@@ -159,6 +159,13 @@ uORB::DeviceNode::open(struct file *filp)
 int
 uORB::DeviceNode::close(struct file *filp)
 {
+	/**
+	 * 关闭设备节点的文件：
+	 * 如果是发布者调用，将发布者置为0
+	 * 否则：就是订阅者：获取SubscriberData数据，
+	 * 从调用列表中移除sd的更新调用
+	 * 移除内部调用者，删除sd的信息
+	 * /
 	/* is this the publisher closing? 如果是发布者关闭文件，将类的属性发布者设为0 */
 	if (getpid() == _publisher) {
 		_publisher = 0;
@@ -167,8 +174,8 @@ uORB::DeviceNode::close(struct file *filp)
 		SubscriberData *sd = filp_to_sd(filp); 
 
 		if (sd != nullptr) {
-			hrt_cancel(&sd->update_call);
-			remove_internal_subscriber();
+			hrt_cancel(&sd->update_call);  //从调用列表中移除sd的更新调用
+			remove_internal_subscriber();  //移除内部调用者，删除sd的信息
 			delete sd;
 			sd = nullptr;
 		}
@@ -182,7 +189,7 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 {
 	SubscriberData *sd = (SubscriberData *)filp_to_sd(filp);
 
-	/* if the object has not been written yet, return zero */
+	/* if the object has not been written yet, return zero 数据为空，对象还没有被写入 */
 	if (_data == nullptr) {
 		return 0;
 	}
@@ -193,24 +200,24 @@ uORB::DeviceNode::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/*
-	 * Perform an atomic copy & state update
+	 * Perform an atomic copy & state update 状态更新要求原子操作
 	 */
 	irqstate_t flags = irqsave();
 
 	/* if the caller doesn't want the data, don't give it to them */
 	if (nullptr != buffer) {
-		memcpy(buffer, _data, _meta->o_size);
+		memcpy(buffer, _data, _meta->o_size);  //将数据从_data拷贝到buffer
 	}
 
-	/* track the last generation that the file has seen */
+	/* track the last generation that the file has seen 设置订阅数据的版本*/
 	sd->generation = _generation;
 
-	/* set priority */
+	/* set priority 优先级*/
 	sd->priority = _priority;
 
 	/*
 	 * Clear the flag that indicates that an update has been reported, as
-	 * we have just collected it.
+	 * we have just collected it. 重置订阅信息是否被更新通知订阅者
 	 */
 	sd->update_reported = false;
 
@@ -315,13 +322,14 @@ uORB::DeviceNode::publish
 	uORB::DeviceNode *DeviceNode = (uORB::DeviceNode *)handle;
 	int ret;
 
-	/* this is a bit risky, since we are trusting the handle in order to deref it */
+	/* this is a bit risky, since we are trusting the handle in order to deref it
+		如果实例句柄的主题不是当前主题，返回错误 */
 	if (DeviceNode->_meta != meta) {
 		errno = EINVAL;
 		return ERROR;
 	}
 
-	/* call the DeviceNode write method with no file pointer */
+	/* call the DeviceNode write method with no file pointer 写入不需要filp */
 	ret = DeviceNode->write(nullptr, (const char *)data, meta->o_size);
 
 	if (ret < 0) {
@@ -334,7 +342,7 @@ uORB::DeviceNode::publish
 	}
 
 	/*
-	 * if the write is successful, send the data over the Multi-ORB link
+	 * if the write is successful, send the data over the Multi-ORB link 写入成功，发生数据到多ORB链接，这里有个问题
 	 */
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
@@ -356,8 +364,9 @@ uORB::DeviceNode::poll_state(struct file *filp)
 
 	/*
 	 * If the topic appears updated to the subscriber, say so.
+	 * 将主题推送给订阅者
 	 */
-	if (appears_updated(sd)) {
+	if (appears_updated(sd)) {  //如果有更新，返回true
 		return POLLIN;
 	}
 
@@ -387,7 +396,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 	irqstate_t state = irqsave();
 
 	/* check if this topic has been published yet, if not bail out */
-	if (_data == nullptr) {
+	if (_data == nullptr) {//没有发布数据，直接输出false
 		ret = false;
 		goto out;
 	}
@@ -396,11 +405,12 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 	 * If the subscriber's generation count matches the update generation
 	 * count, there has been no update from their perspective; if they
 	 * don't match then we might have a visible update.
+	 * 通过数据的代数判断是否需要更新，是while循环
 	 */
 	while (sd->generation != _generation) {
 
 		/*
-		 * Handle non-rate-limited subscribers.
+		 * Handle non-rate-limited subscribers. 如果更新速率没有延迟，直接返回true
 		 */
 		if (sd->update_interval == 0) {
 			ret = true;
@@ -413,6 +423,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		 * that there has been an update.  This mimics the non-rate-limited
 		 * behaviour where checking / polling continues to report an update
 		 * until the topic is read.
+		 * 我们之前告诉订阅者有更新，但是订阅者并没有接受更新
 		 */
 		if (sd->update_reported) {
 			ret = true;
@@ -425,15 +436,17 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 		 * We have previously been through here, so the subscriber
 		 * must have collected the update we reported, otherwise
 		 * update_reported would still be true.
+		 * 如下情况是因为更新速率设置的原因，我们即使知道数据更新了，也不能告诉订阅者，需要订阅者自己来更新
 		 */
-		if (!hrt_called(&sd->update_call)) {
-			break;
+		if (!hrt_called(&sd->update_call)) { //sd的更新调用已经从调用列表中删除或者永远不会调用 
+			break;  //重复标注
 		}
 
 		/*
 		 * Make sure that we don't consider the topic to be updated again
 		 * until the interval has passed once more by restarting the interval
 		 * timer and thereby re-scheduling a poll notification at that time.
+		 * 在延时后调用这个更新
 		 */
 		hrt_call_after(&sd->update_call,
 			       sd->update_interval,
@@ -462,6 +475,7 @@ uORB::DeviceNode::update_deferred()
 	/*
 	 * Instigate a poll notification; any subscribers whose intervals have
 	 * expired will be woken.
+	 * 任何定时器到期订阅者都可以运行
 	 */
 	poll_notify(POLLIN);
 }
@@ -471,7 +485,7 @@ uORB::DeviceNode::update_deferred_trampoline(void *arg)
 {
 	uORB::DeviceNode *node = (uORB::DeviceNode *)arg;
 
-	node->update_deferred();
+	node->update_deferred(); //调用延时更新的对象
 }
 
 //-----------------------------------------------------------------------------

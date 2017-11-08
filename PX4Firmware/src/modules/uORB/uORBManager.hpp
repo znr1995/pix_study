@@ -56,6 +56,7 @@ class Manager;
  * This is implemented as a singleton.  This class manages creating the
  * uORB nodes for each uORB topics and also implements the behavor of the
  * uORB Api's.
+ * 这个类管理着每一个UORB主题和节点，也实现了UORb的API
  */
 class uORB::Manager  : public uORBCommunicator::IChannelRxHandler
 {

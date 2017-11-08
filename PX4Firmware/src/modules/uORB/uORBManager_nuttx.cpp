@@ -66,6 +66,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 {
 	/*
 	 * Generate the path to the node and try to open it.
+	 * 生成对应路径去查找是否有文件
 	 */
 	char path[orb_maxpath];
 	int inst = instance;
@@ -78,7 +79,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 
 	struct stat buffer;
 
-	return stat(path, &buffer);
+	return stat(path, &buffer);  //将文件信息保存在buf中
 }
 
 orb_advert_t uORB::Manager::orb_advertise(const struct orb_metadata *meta, const void *data)
@@ -99,7 +100,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 		return nullptr;
 	}
 
-	/* get the advertiser handle and close the node */
+	/* get the advertiser handle and close the node 通过ioctl从fd获取全局发布者 */
 	result = ioctl(fd, ORBIOCGADVERTISER, (unsigned long)&advertiser);
 	close(fd);
 
@@ -237,7 +238,7 @@ int uORB::Manager::node_open
 	}
 
 	/*
-	 * Advertiser must publish an initial value.
+	 * Advertiser must publish an initial value. 如果有发布者必须要有一个初始值
 	 */
 	if (advertiser && (data == nullptr)) {
 		errno = EINVAL;
@@ -254,18 +255,20 @@ int uORB::Manager::node_open
 		return ERROR;
 	}
 
-	/* open the path as either the advertiser or the subscriber */
+	/* open the path as either the advertiser or the subscriber，根据是否为发布者确定打开文件的权限 */
 	fd = open(path, (advertiser) ? O_WRONLY : O_RDONLY);
 
-	/* if we want to advertise and the node existed, we have to re-try again */
+	/* if we want to advertise and the node existed, we have to re-try again
+		如果我们需要发布一个公告，但是又打开成功，说明之前发布了，关闭重试。 */
 	if ((fd >= 0) && (instance != nullptr) && (advertiser)) {
 		/* close the fd, we want a new one */
 		close(fd);
 		/* the node_advertise call will automatically go for the next free entry */
+		//node_advertise调用会自动去下一个空闲实例
 		fd = -1;
 	}
 
-	/* we may need to advertise the node... */
+	/* we may need to advertise the node... 重新发布这个节点，fd《0说明打开失败 */
 	if (fd < 0) {
 
 		/* try to create the node */
@@ -292,7 +295,7 @@ int uORB::Manager::node_open
 		return ERROR;
 	}
 
-	/* everything has been OK, we can return the handle now */
+	/* everything has been OK, we can return the handle now  返回文件句柄 */
 	return fd;
 }
 
@@ -320,12 +323,12 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName,
 	warnx("[posix-uORB::Manager::process_add_subscription(%d)] entering Manager_process_add_subscription: name: %s",
 	      __LINE__, messageName);
 	int16_t rc = 0;
-	_remote_subscriber_topics.insert(messageName);
+	_remote_subscriber_topics.insert(messageName);  //插入主题到集合中
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName);
 
 	if (ret == OK) {
-		// get the node name.
+		// get the node name.根据节点路径获取节点
 		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
 
 		if (node == nullptr) {
@@ -334,7 +337,7 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName,
 
 		} else {
 			// node is present.
-			node->process_add_subscription(msgRateInHz);
+			node->process_add_subscription(msgRateInHz);  //让node处理订阅
 		}
 
 	} else {
@@ -352,12 +355,12 @@ int16_t uORB::Manager::process_remove_subscription(
 	warnx("[posix-uORB::Manager::process_remove_subscription(%d)] Enter: name: %s",
 	      __LINE__, messageName);
 	int16_t rc = -1;
-	_remote_subscriber_topics.erase(messageName);
+	_remote_subscriber_topics.erase(messageName); //移除主题
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, PUBSUB, messageName);
 
 	if (ret == OK) {
-		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath);
+		uORB::DeviceNode *node = uORB::DeviceMaster::GetDeviceNode(nodepath); //找到对应节点
 
 		// get the node name.
 		if (node == nullptr) {
@@ -366,7 +369,7 @@ int16_t uORB::Manager::process_remove_subscription(
 
 		} else {
 			// node is present.
-			node->process_remove_subscription();
+			node->process_remove_subscription();  //节点释放
 			rc = 0;
 		}
 	}

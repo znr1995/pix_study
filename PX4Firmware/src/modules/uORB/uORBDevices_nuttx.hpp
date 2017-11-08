@@ -183,13 +183,13 @@ private:
 		int   priority; /**< priority of publisher */
 	};
 
-	const struct orb_metadata *_meta; /**< object metadata information */
+	const struct orb_metadata *_meta; /**< object metadata information 元数据信息 */
 	uint8_t     *_data;   /**< allocated object buffer */
-	hrt_abstime   _last_update; /**< time the object was last updated */
+	hrt_abstime   _last_update; /**< time the object was last updated 上次更新时间 */
 	volatile unsigned   _generation;  /**< object generation count */
-	pid_t     _publisher; /**< if nonzero, current publisher */
-	const int   _priority;  /**< priority of topic */
-	bool _published;  /**< has ever data been published */
+	pid_t     _publisher; /**< if nonzero, current publisher 当前设备节点的发布者 */
+	const int   _priority;  /**< priority of topic 主题优先级 */
+	bool _published;  /**< has ever data been published 数据是否被发布过 */
 
 private: // private class methods.
 
@@ -203,19 +203,19 @@ private: // private class methods.
 	int32_t _subscriber_count;
 
 	/**
-	 * Perform a deferred update for a rate-limited subscriber.
+	 * Perform a deferred update for a rate-limited subscriber. 为限速的订阅者推迟更新
 	 */
 	void      update_deferred();
 
 	/**
-	 * Bridge from hrt_call to update_deferred
+	 * Bridge from hrt_call to update_deferred 调用hrt_call推迟更新的中间函数
 	 *
-	 * void *arg    ORBDevNode pointer for which the deferred update is performed.
+	 * void *arg    ORBDevNode pointer for which the deferred update is performed. arg是ORBDevNode的指针
 	 */
 	static void   update_deferred_trampoline(void *arg);
 
 	/**
-	 * Check whether a topic appears updated to a subscriber.
+	 * Check whether a topic appears updated to a subscriber. 检查主题是否更新到该用户了
 	 *
 	 * @param sd    The subscriber for whom to check.
 	 * @return    True if the topic should appear updated to the subscriber

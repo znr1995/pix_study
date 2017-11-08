@@ -207,21 +207,47 @@ class DeviceMaster; //节点管理
 
 ##### open(struct file *filp) int virtual
 
+设备节点打开：算是虚拟的设备文件虽然继承与CDev类
+
+根据文件信息，读取权限：
+
+​	如果文件写入权限，认为是发布者，设备节点属性发布者设为当前PID，使用CDev::open打开（但实际这个类也没干什么，可以忽略这一句）
+
+​	如果是读取权限，认为是订阅者，申请SubscriberData给filp->f_priv，使用CDev::open打开，添加内部调用者。
+
 ##### close(*filp) int virtual
+
+设备节点关闭：
+
+​	如果是发布者调用的关闭，将属性发布者置为0
+
+​	如果是订阅者调用，获取filp中的SubscriberData，从调用列表中删除，移除内部调用者
 
 ##### read(*filp, *buffer, buflen) ssize_t virtual
 
+将类中数据_data读入到buffer中
+
 ##### write(*filp, *buffer, buflen) ssize_t virtual
+
+将buffer的数据读入到类的_data属性中
 
 ##### ioctl(*filp, cmd, arg) int virtual
 
+根据cmd的值调整arg的类型，交给Cdev::ioctl()处理
+
 ##### publish(*meta, handle, *data) ssize_t static
+
+这是静态函数，所有实例公用一个
+
+根据传入的句柄（即DeviceNode的指针），将data的数据写入类的对象属性_data中
 
 ##### process_add_subscription(rateInHz) int16_t
 
 ##### process_remove_subscription() int16_t
 
 ##### process_received_message(length, *data) int16_t
+
+将接受的数据写入_data属性中
 
 ##### add_internal_subscriber() void
 
@@ -233,7 +259,19 @@ class DeviceMaster; //节点管理
 
 ##### poll_state(*filp) pollevent_t virtual
 
+判断主题是否推送给订阅者，需要推送返回POLLIN，否则0
+
 ##### poll_notify_one(struct pollfd *fds,pollevent_t events )
+
+对于fds来说，如果有更新，调用Cdev::poll_notify_one()函数进行更新
+
+##### appears_updated(SubscriberData *sd) bool
+
+根据sd的信息，判断是否有更新（发布者调用这个函数）
+
+##### update_deferred() void
+
+监控拉的需求
 
 ```c++
 private:
@@ -313,6 +351,67 @@ private:
 ### uORBDevices
 
 ### uORBManager
+
+这个类管理着每一个UORB主题和节点，也实现了UORb的API
+
+继承自IChannelRxHandler类，类中函数大多都在前面见过，我只大概描述一下实现，如果有必要的话
+
+##### get_instance() Manager* static
+
+##### orb_advertise(\*meta,\*data) orb_advert_t
+
+##### orb_advertise_multi(*meta, *data, *instance, priority) orb_advert_t
+
+##### orb_publish(*meta, handle, *data) int
+
+##### orb_subscribe(*meta) int
+
+##### orb_subscribe_multi(*meta, instance) int
+
+订阅的原理就是打开以只读打开文件，返回fd
+
+##### orb_unsubscribe(handle) int
+
+##### orb_copy(*meta, handle, buffer) int
+
+##### orb_check(handle, *updated) int
+
+##### orb_stat(handle, *time) int
+
+##### orb_exists(*meta, instance) int
+
+根据参数生成路径，然后试图打开对应文件
+
+##### orb_priority(handle, *priority) int
+
+##### orb_set_interval(handle, interval) int
+
+##### set_uorb_communicator(*comm_channel) void
+
+#####get_uorb_communicator() IChannel*
+
+##### is_remote_subscriber_present(*messageName) bool
+
+private:
+
+##### node_advertise(*meta, *instance, priority) int
+
+##### node_open(Flavor, *meta, *data, advertiser, *instance, priority) int
+
+##### process_add_subscription(*messageName, msgRate) int16_t
+
+##### process_remove_subscription(*messageName) int16_t
+
+#####process_received_message(*message, length, *data) int16_t
+
+````c++
+	static Manager *_Instance; //全局唯一的管理器
+	// the communicator channel instance.
+	uORBCommunicator::IChannel *_comm_channel;
+	ORBSet _remote_subscriber_topics;
+````
+
+
 
 ### uORBTest_UnitTest
 
