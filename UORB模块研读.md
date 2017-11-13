@@ -65,13 +65,25 @@ data:指向发布数据的制作
 
 ## uORB原理解析：
 
-### 乱乱七八糟
+![0001](C:\Users\87095\Desktop\pix_study\0001.jpg)
 
-uORB namespace中有类*ORBMap* 和 *DeviceNode*
+####实现方式：
 
-猜测：
-
-​	Map类负责管理维护数据结构，Node才是具体的存储类
+1. 首先模块入口是uORBMain.cpp，这里会创建唯一的MasterNode实例，负责内部的设备节点的控制
+2. MasterNode简洁：继承自CDev，是一个字符设备，linux中设备都是文件，所以会在对应路径下生成文件，主要对Cdev的ioctl函数进行多态实现，类内部维护一个Nodemap的数据结构（后面有详细简绍），所有的DeviceNode都会加入其中管理。
+3. 当外部调用uORB的方法时候，实际间接调用了uORB::Manger类的方法，也可以理解做Manger是外部函数的管理入口，MasterNode是内部节点的管理器。
+4. 外部函数调用uORB时候都会通过uORB::Manger::get_instance()这个函数获取Manger的实例指针。这个函数是静态函数，根据判断命名空间中_Instance指针是否为空，确保全nameespace中只有这么一个Manger实例。
+5. 实际节点，DeviceNode，继承自CDev，每一个字符设备都会生成对应的文件。这个类重载了open,close,read,wirte,ioctl，还有其他一些函数。
+6. 当外部调用orb_advertise时，Manger会做如下的事情：
+   1. 以发布者的身份调用node_open函数，最后返回对应文件的文件描述符fd。先确认一下是否这个主题对应实例的序号已经被发布过，如果是，会重新发布一下，否则（对应文件不存在，也就是这个主题对应ID的DeviceNode不存在），会调用node_advertise函数进行DeviceNode实例的创建。
+   2. （调用node_open函数）
+   3. 通过fd调用ioctl函数，返回DeiceNode对象的指针。
+   4. 发布初始化的数据
+7. 当外部调用orb_publish时
+   1. 根据传入的DeviceNode的指针，调用这个类的静态的发布数据的方法。就是将数据写入DeviceNode对象的属性中。
+8. 当外部调用orb_Subsctibe时，
+   1. 使用Manger类的node_open函数，返回对应主题对应实例的文件描述符，其他信息都可以通过调用被DeviceNode多态实现过的ioctl函数获得。
+   2. 取消订阅就将文件描述符关闭就可以了。
 
 ### uORB
 
@@ -185,10 +197,6 @@ uORB namespace中有类*ORBMap* 和 *DeviceNode*
 
 ​	当有新的数据结点，加入到end后面，查找、获取是从头到尾顺序查找队列，使用strcmp()比较node_name
 
-### Pulication
-
-### Subscription
-
 ### uORBDevices_nuttx
 
 ```c++
@@ -209,11 +217,11 @@ class DeviceMaster; //节点管理
 
 设备节点打开：算是虚拟的设备文件虽然继承与CDev类
 
-根据文件信息，读取权限：
+根据文件信息，读取权限：（filp记录了这次打开文件的信息，比如权限，PID等数据）
 
-​	如果文件写入权限，认为是发布者，设备节点属性发布者设为当前PID，使用CDev::open打开（但实际这个类也没干什么，可以忽略这一句）
+​	如果文件写入权限，认为是发布者，设备节点属性发布者设为当前PID，使用CDev::open打开（但实际这个类也没干什么，可以忽略这一句），
 
-​	如果是读取权限，认为是订阅者，申请SubscriberData给filp->f_priv，使用CDev::open打开，添加内部调用者。
+​	如果是读取权限，认为是订阅者，申请SubscriberData给filp->f_priv，记录这个订阅对象fd所私有的数据，并且告诉对象属性又一个订阅者订阅了你
 
 ##### close(*filp) int virtual
 
@@ -233,13 +241,15 @@ class DeviceMaster; //节点管理
 
 ##### ioctl(*filp, cmd, arg) int virtual
 
-根据cmd的值调整arg的类型，交给Cdev::ioctl()处理
+根据cmd的值调整arg的类型，输出对应数据属性
 
 ##### publish(*meta, handle, *data) ssize_t static
 
 这是静态函数，所有实例公用一个
 
 根据传入的句柄（即DeviceNode的指针），将data的数据写入类的对象属性_data中
+
+//以下3个函数应该是设计远程调用IChannel接口的，这里不做讨论，因为没看懂，也没有示例使用
 
 ##### process_add_subscription(rateInHz) int16_t
 
@@ -291,41 +301,6 @@ private:
 	pid_t     _publisher; /**< if nonzero, current publisher */
 	const int   _priority;  /**< priority of topic */
 	bool _published;  /**< has ever data been published */
-
-private: // private class methods.
-
-	SubscriberData    *filp_to_sd(struct file *filp)
-	{
-		SubscriberData *sd = (SubscriberData *)(filp->f_priv);
-		return sd;
-	}
-
-	bool    _IsRemoteSubscriberPresent;
-	int32_t _subscriber_count;
-
-	/**
-	 * Perform a deferred update for a rate-limited subscriber.
-	 */
-	void      update_deferred();
-
-	/**
-	 * Bridge from hrt_call to update_deferred
-	 *
-	 * void *arg    ORBDevNode pointer for which the deferred update is performed.
-	 */
-	static void   update_deferred_trampoline(void *arg);
-
-	/**
-	 * Check whether a topic appears updated to a subscriber.
-	 *
-	 * @param sd    The subscriber for whom to check.
-	 * @return    True if the topic should appear updated to the subscriber
-	 */
-	bool      appears_updated(SubscriberData *sd);
-
-	// disable copy and assignment operators
-	DeviceNode(const DeviceNode &);
-	DeviceNode &operator=(const DeviceNode &);
 ```
 
 
@@ -342,13 +317,13 @@ private: // private class methods.
 
 ```c++
 private:
-	Flavor      _flavor;
-	static ORBMap _node_map;
+	Flavor      _flavor;  //是PUBSUB还是OBJ
+	static ORBMap _node_map; //所有的DeviceNode设备都在其中
 ```
 
 ###uORBDevices_posix
 
-### uORBDevices
+nuttx是在px4在nuttx操作系统下运行的，这个应该是裸机运行的。
 
 ### uORBManager
 
@@ -358,11 +333,21 @@ private:
 
 ##### get_instance() Manager* static
 
+获取生成的uORBManager实例，静态的，单个进程中只生成一个实例
+
 ##### orb_advertise(\*meta,\*data) orb_advert_t
 
 ##### orb_advertise_multi(*meta, *data, *instance, priority) orb_advert_t
 
+根据主题和实例编号获取文件描述符，根据文件描述符获取当前发布者的指针并返回发布者的指针
+
 ##### orb_publish(*meta, handle, *data) int
+
+发布数据，返回成功与否
+
+实现：
+
+​	调用DevicNode的publish方法，DeviceNode::publish是静态方法，调用handle->write()函数（write会使属性_generation++，标记数据版本的），将数据写入文件中
 
 ##### orb_subscribe(*meta) int
 
@@ -370,21 +355,37 @@ private:
 
 订阅的原理就是打开以只读打开文件，返回fd
 
+（一个文件可以被打开多次，返回的fd都不一样，fd对应这file *filp这个指针（也就是你在DeivceNode类中参数filp一样，这个指针的结构体参数比较全），所以可以打开一次，有多个备份的filp）
+
 ##### orb_unsubscribe(handle) int
 
 ##### orb_copy(*meta, handle, buffer) int
 
+从handle中读取相应长度的数据到buffer中
+
 ##### orb_check(handle, *updated) int
+
+使用ioctl方法（ioctrl方法有DeviceNode类实现）
+
+这个检查的办法是对比filp中维护的SubscriberData数据和对象中属性_generation是否一致，虽然filp有多个，但是文件（或者说DeviceNode对象只有一个），所以可以进行判断。（更新版本是在写入时候_generation++）
 
 ##### orb_stat(handle, *time) int
 
+使用ioctl方法
+
 ##### orb_exists(*meta, instance) int
 
-根据参数生成路径，然后试图打开对应文件
+主题的对应实例是否有
+
+​	根据参数生成路径，然后试图打开对应文件
 
 ##### orb_priority(handle, *priority) int
 
+使用ioctl方法
+
 ##### orb_set_interval(handle, interval) int
+
+使用ioctl方法
 
 ##### set_uorb_communicator(*comm_channel) void
 
@@ -396,13 +397,63 @@ private:
 
 ##### node_advertise(*meta, *instance, priority) int
 
+通过调用控制设备MasterNode的ioctl函数（被重载过），让控制文件去创建对应的DeviceNode对象（有了对象，对应路径下就有了文件）
+
 ##### node_open(Flavor, *meta, *data, advertiser, *instance, priority) int
+
+根据订阅发布的属性打开对应的设备文件，返回文件描述符
+
+这个函数让你屏蔽是否存在这样的设备文件，根据你的需求去解决。
+
+如果你是订阅者，存在，直接返回。不存在，那就创建一个，方法同下。
+
+如果你是发布者，存在，关闭fd。重新打开一次，（这时node_advertise调用将自动进入下一个空闲条目）不存在，调用node_advertise发布创建一个DeviceNode对象（有了对象自然会有文件）
+
+​	实现：
+
+​	判断输入的逻辑合法性
+
+​	根据订阅者还是发布者，选择对应读取权限打开文件
+
+​	如果是发布者&&打开成功，说明这个文件存在
+
+​	关闭文件重新调用node_advertise发布再打开文件
+
+​	返回文件描述符fd
 
 ##### process_add_subscription(*messageName, msgRate) int16_t
 
+处理订阅的回调函数，Manger类实现的
+
+实现逻辑：
+
+​	将主体加入订阅主题的集合中
+
+​	根据对应信息获取路径，再从设备管理器DeviceMaster获取对应的设备节点
+
+​	具体设备节点处理订阅频率
+
 ##### process_remove_subscription(*messageName) int16_t
 
+处理移除订阅的回调函数，Manger类实现
+
+实现逻辑：
+
+​	将主题移除主题集合
+
+​	获取对应的设备节点
+
+​	具体设备节点处理移除事件
+
 #####process_received_message(*message, length, *data) int16_t
+
+处理接受信息的回调函数，Manger类实现
+
+实现逻辑：
+
+​	获取对应的设备节点
+
+​	具体的设备节点处理接受的信息
 
 ````c++
 	static Manager *_Instance; //全局唯一的管理器
@@ -412,8 +463,6 @@ private:
 ````
 
 
-
-### uORBTest_UnitTest
 
 ### uORBUtils
 

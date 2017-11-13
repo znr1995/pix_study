@@ -108,7 +108,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 		return nullptr;
 	}
 
-	/* the advertiser must perform an initial publish to initialise the object */
+	/* the advertiser must perform an initial publish to initialise the object  发布数据出去 */
 	result = orb_publish(meta, advertiser, data);
 
 	if (result == ERROR) {
@@ -118,6 +118,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	return advertiser;
 }
 
+//订阅就是打开对应文件，返回文件描述符
 int uORB::Manager::orb_subscribe(const struct orb_metadata *meta)
 {
 	return node_open(PUBSUB, meta, nullptr, false);
@@ -133,12 +134,13 @@ int uORB::Manager::orb_unsubscribe(int handle)
 {
 	return close(handle);
 }
-
+//数据发布调用的deviceNode的发布方法
 int uORB::Manager::orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data)
 {
 	return uORB::DeviceNode::publish(meta, handle, data);
 }
 
+//读取数据就是从文件读取对应大小的数据
 int uORB::Manager::orb_copy(const struct orb_metadata *meta, int handle, void *buffer)
 {
 	int ret;
@@ -157,6 +159,7 @@ int uORB::Manager::orb_copy(const struct orb_metadata *meta, int handle, void *b
 	return OK;
 }
 
+//使用ioctl方法
 int uORB::Manager::orb_check(int handle, bool *updated)
 {
 	return ioctl(handle, ORBIOCUPDATED, (unsigned long)(uintptr_t)updated);
@@ -178,7 +181,7 @@ int uORB::Manager::orb_set_interval(int handle, unsigned interval)
 }
 
 
-int uORB::Manager::node_advertise
+int uORB::Manager::node_advertise   //node_advertise是打开控制文件，使用ioctl函数
 (
 	const struct orb_metadata *meta,
 	int *instance,
@@ -264,7 +267,7 @@ int uORB::Manager::node_open
 		/* close the fd, we want a new one */
 		close(fd);
 		/* the node_advertise call will automatically go for the next free entry */
-		//node_advertise调用会自动去下一个空闲实例
+		//node_advertise调用会自动去下一个空闲实例，没看懂
 		fd = -1;
 	}
 

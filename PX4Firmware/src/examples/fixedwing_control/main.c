@@ -103,7 +103,7 @@ int fixedwing_control_thread_main(int argc, char *argv[]);
  */
 static void usage(const char *reason);
 
-/**
+/**																										
  * Control roll and pitch angle.
  *
  * This very simple roll and pitch controller takes the current roll angle
